@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "763742703305",
+    "project_id": "eventtoria",
+    "storage_bucket": "eventtoria.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:763742703305:android:e2e7726f1dd3e519ce4718",
+        "android_client_info": {
+          "package_name": "com.example.eventtoria"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAx7lrGMqryY4ka87Hv26aBIQboUP4jCkQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
