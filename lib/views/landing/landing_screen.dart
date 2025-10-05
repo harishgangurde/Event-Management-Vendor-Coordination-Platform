@@ -45,10 +45,7 @@ class _LandingScreenState extends State<LandingScreen>
       curve: Curves.elasticOut,
     );
 
-    _logoFade = CurvedAnimation(
-      parent: _logoController,
-      curve: Curves.easeIn,
-    );
+    _logoFade = CurvedAnimation(parent: _logoController, curve: Curves.easeIn);
 
     _logoSlide = Tween<Offset>(
       begin: const Offset(0, -0.3),
@@ -67,34 +64,37 @@ class _LandingScreenState extends State<LandingScreen>
       parent: _textController,
       curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
     );
-    _titleSlide = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-        parent: _textController,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeOut)));
+    _titleSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _textController,
+            curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+          ),
+        );
 
     _subtitleFade = CurvedAnimation(
       parent: _textController,
       curve: const Interval(0.2, 0.7, curve: Curves.easeIn),
     );
-    _subtitleSlide = Tween<Offset>(
-      begin: const Offset(0, 0.5),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-        parent: _textController,
-        curve: const Interval(0.2, 0.7, curve: Curves.easeOut)));
+    _subtitleSlide =
+        Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _textController,
+            curve: const Interval(0.2, 0.7, curve: Curves.easeOut),
+          ),
+        );
 
     _buttonFade = CurvedAnimation(
       parent: _textController,
       curve: const Interval(0.5, 1.0, curve: Curves.easeIn),
     );
-    _buttonSlide = Tween<Offset>(
-      begin: const Offset(0, 0.7),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-        parent: _textController,
-        curve: const Interval(0.5, 1.0, curve: Curves.easeOut)));
+    _buttonSlide = Tween<Offset>(begin: const Offset(0, 0.7), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _textController,
+            curve: const Interval(0.5, 1.0, curve: Curves.easeOut),
+          ),
+        );
 
     _textController.forward();
 
@@ -161,8 +161,9 @@ class _LandingScreenState extends State<LandingScreen>
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.purpleAccent
-                                            .withOpacity(_glowAnimation.value),
+                                        color: Colors.purpleAccent.withOpacity(
+                                          _glowAnimation.value,
+                                        ),
                                         blurRadius: 30,
                                         spreadRadius: 10,
                                       ),
@@ -184,7 +185,7 @@ class _LandingScreenState extends State<LandingScreen>
                               ),
                               child: ClipOval(
                                 child: Image.asset(
-                                  'assets/images/E.png',
+                                  'assets/images/logo.png',
                                   height: 150,
                                   width: 150,
                                   fit: BoxFit.contain,
@@ -243,15 +244,15 @@ class _LandingScreenState extends State<LandingScreen>
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) =>
-                                          const LoginScreen(),
+                                      builder: (context) => const LoginScreen(),
                                     ),
                                   );
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: primaryColor,
                                   padding: const EdgeInsets.symmetric(
-                                      vertical: 16),
+                                    vertical: 16,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(50),
                                   ),
@@ -259,9 +260,10 @@ class _LandingScreenState extends State<LandingScreen>
                                 child: const Text(
                                   "Get Started",
                                   style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),
@@ -282,7 +284,8 @@ class _LandingScreenState extends State<LandingScreen>
                                     color: Colors.white.withOpacity(0.5),
                                   ),
                                   padding: const EdgeInsets.symmetric(
-                                      vertical: 16),
+                                    vertical: 16,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(50),
                                   ),
@@ -290,7 +293,9 @@ class _LandingScreenState extends State<LandingScreen>
                                 child: const Text(
                                   "Learn More",
                                   style: TextStyle(
-                                      fontSize: 16, color: Colors.white),
+                                    fontSize: 16,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),
