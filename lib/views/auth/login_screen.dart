@@ -81,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (role == 'Planner') {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const PlannerDashboard()),
+          MaterialPageRoute(builder: (_) => const DashboardPlanner()),
         );
       } else if (role == 'Vendor') {
         Navigator.pushReplacement(

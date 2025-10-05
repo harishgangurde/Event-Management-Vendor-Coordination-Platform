@@ -1,7 +1,6 @@
 // lib/controllers/auth_controller.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 
 class AuthController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -17,10 +16,8 @@ class AuthController {
   }) async {
     try {
       // Create user with email & password
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(email: email, password: password);
 
       // Save additional info in Firestore
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
@@ -65,7 +62,10 @@ class AuthController {
   // Get user role from Firestore
   Future<String?> getUserRole(String uid) async {
     try {
-      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
+      DocumentSnapshot doc = await _firestore
+          .collection('users')
+          .doc(uid)
+          .get();
       if (doc.exists && doc.data() != null) {
         return (doc.data() as Map<String, dynamic>)['role'] as String?;
       }

@@ -65,7 +65,7 @@ class _SignupScreenState extends State<SignupScreen> {
         if (_role == 'Planner') {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => const PlannerDashboard()),
+            MaterialPageRoute(builder: (_) => const DashboardPlanner()),
           );
         } else if (_role == 'Vendor') {
           Navigator.pushReplacement(
