@@ -17,13 +17,109 @@ class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _auth = FirebaseAuth.instance;
 
-  String? _name, _email, _phone, _password, _confirmPassword, _role;
+  // Controllers for all input fields
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
 
+  String? _role;
   final primaryColor = const Color(0xFF7F06F9);
-  final backgroundDark = const Color.fromARGB(255, 21, 10, 45);
-  final cardDark = const Color(0xFF1A0F2E);
+  final backgroundDark = const Color(0xFF161022);
+  final cardDark = const Color(0xFF1f1a30);
+  final List<String> roles = ['Planner', 'Vendor', 'Admin'];
 
-  final roles = ['Planner', 'Vendor', 'Admin'];
+  bool _loading = false;
+
+  // Show animated role selector
+  void _showRoleSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: backgroundDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: roles.asMap().entries.map((entry) {
+              int index = entry.key;
+              String role = entry.value;
+              return AnimatedRoleTile(
+                role: role,
+                delay: Duration(milliseconds: 100 * index),
+                onTap: () {
+                  setState(() => _role = role);
+                  Navigator.pop(context);
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  void _signUp() async {
+    if (_formKey.currentState!.validate()) {
+      if (_role == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Please select a role")));
+        return;
+      }
+
+      setState(() => _loading = true);
+
+      try {
+        UserCredential userCred = await _auth.createUserWithEmailAndPassword(
+          email: emailController.text.trim(),
+          password: passwordController.text.trim(),
+        );
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCred.user!.uid)
+            .set({
+              'name': nameController.text.trim(),
+              'email': emailController.text.trim(),
+              'phone': phoneController.text.trim(),
+              'role': _role,
+              'uid': userCred.user!.uid,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Sign Up Successful!")));
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      } on FirebaseAuthException catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message ?? "Sign Up Failed")));
+      } finally {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,149 +154,75 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   const SizedBox(height: 32),
 
-                  // Name
-                  TextFormField(
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: "Name",
-                      hintStyle: TextStyle(color: Colors.grey[400]),
-                      filled: true,
-                      fillColor: cardDark,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: primaryColor),
-                      ),
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
-                    validator: (value) => value!.isEmpty ? "Enter name" : null,
-                    onSaved: (value) => _name = value,
+                  _customTextField("Name", nameController, "Enter name"),
+                  const SizedBox(height: 12),
+                  _customTextField(
+                    "Email",
+                    emailController,
+                    "Enter email",
+                    keyboard: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 12),
+                  _customTextField(
+                    "Phone",
+                    phoneController,
+                    "Enter phone",
+                    keyboard: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 12),
+                  _customTextField(
+                    "Password",
+                    passwordController,
+                    "Enter password",
+                    obscure: true,
+                  ),
+                  const SizedBox(height: 12),
+                  _customTextField(
+                    "Confirm Password",
+                    confirmPasswordController,
+                    "Password does not match",
+                    obscure: true,
+                    validator: (val) {
+                      if (val!.isEmpty) return "Enter password again";
+                      if (val != passwordController.text)
+                        return "Passwords do not match";
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 12),
 
-                  // Email
-                  TextFormField(
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: "Email",
-                      hintStyle: TextStyle(color: Colors.grey[400]),
-                      filled: true,
-                      fillColor: cardDark,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
+                  // Role Selector
+                  GestureDetector(
+                    onTap: _showRoleSelector,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
                       ),
-                      focusedBorder: OutlineInputBorder(
+                      decoration: BoxDecoration(
+                        color: cardDark,
                         borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: primaryColor),
+                        border: _role == null
+                            ? Border.all(color: Colors.grey)
+                            : Border.all(color: primaryColor),
                       ),
-                      contentPadding: const EdgeInsets.all(16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _role ?? "Select Role",
+                            style: TextStyle(
+                              color: _role == null ? Colors.grey : Colors.white,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const Icon(
+                            Icons.arrow_drop_down,
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
                     ),
-                    validator: (value) => value!.isEmpty ? "Enter email" : null,
-                    onSaved: (value) => _email = value,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Phone
-                  TextFormField(
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: "Phone",
-                      hintStyle: TextStyle(color: Colors.grey[400]),
-                      filled: true,
-                      fillColor: cardDark,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: primaryColor),
-                      ),
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
-                    keyboardType: TextInputType.phone,
-                    validator: (value) => value!.isEmpty ? "Enter phone" : null,
-                    onSaved: (value) => _phone = value,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Password
-                  TextFormField(
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: "Password",
-                      hintStyle: TextStyle(color: Colors.grey[400]),
-                      filled: true,
-                      fillColor: cardDark,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: primaryColor),
-                      ),
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
-                    obscureText: true,
-                    validator: (value) =>
-                        value!.isEmpty ? "Enter password" : null,
-                    onSaved: (value) => _password = value,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Confirm Password
-                  TextFormField(
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: "Confirm Password",
-                      hintStyle: TextStyle(color: Colors.grey[400]),
-                      filled: true,
-                      fillColor: cardDark,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: primaryColor),
-                      ),
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
-                    obscureText: true,
-                    validator: (value) =>
-                        value != _password ? "Password does not match" : null,
-                    onSaved: (value) => _confirmPassword = value,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Role Dropdown
-                  DropdownButtonFormField<String>(
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: cardDark,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: primaryColor),
-                      ),
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
-                    dropdownColor: cardDark,
-                    hint: const Text(
-                      "Select your role",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    items: roles
-                        .map(
-                          (role) =>
-                              DropdownMenuItem(value: role, child: Text(role)),
-                        )
-                        .toList(),
-                    validator: (value) => value == null ? "Select role" : null,
-                    onChanged: (value) => setState(() => _role = value),
                   ),
                   const SizedBox(height: 24),
 
@@ -208,7 +230,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _signUp,
+                      onPressed: _loading ? null : _signUp,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryColor,
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -216,19 +238,21 @@ class _SignupScreenState extends State<SignupScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text(
-                        "Sign Up",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: _loading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              "Sign Up",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 16),
 
-                  // Already have an account
+                  // Login Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -238,7 +262,12 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                       GestureDetector(
                         onTap: () {
-                          Navigator.pushNamed(context, '/login');
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const LoginScreen(),
+                            ),
+                          );
                         },
                         child: Text(
                           "Log In",
@@ -260,48 +289,100 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  void _signUp() async {
-    if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
+  Widget _customTextField(
+    String hint,
+    TextEditingController controller,
+    String errorText, {
+    TextInputType keyboard = TextInputType.text,
+    bool obscure = false,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: obscure,
+      keyboardType: keyboard,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.grey),
+        filled: true,
+        fillColor: cardDark,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: primaryColor),
+        ),
+        contentPadding: const EdgeInsets.all(16),
+      ),
+      validator: validator ?? (val) => val!.isEmpty ? errorText : null,
+    );
+  }
+}
 
-      if (_password != _confirmPassword) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Passwords do not match")));
-        return;
-      }
+// Animated Role Tile
+class AnimatedRoleTile extends StatefulWidget {
+  final String role;
+  final Duration delay;
+  final VoidCallback onTap;
 
-      try {
-        // Create Firebase User
-        UserCredential userCred = await _auth.createUserWithEmailAndPassword(
-          email: _email!,
-          password: _password!,
-        );
+  const AnimatedRoleTile({
+    super.key,
+    required this.role,
+    required this.delay,
+    required this.onTap,
+  });
 
-        // Add data to Firestore
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userCred.user!.uid)
-            .set({
-              'name': _name,
-              'email': _email,
-              'phone': _phone,
-              'role': _role,
-              'uid': userCred.user!.uid,
-              'createdAt': FieldValue.serverTimestamp(),
-            });
+  @override
+  State<AnimatedRoleTile> createState() => _AnimatedRoleTileState();
+}
 
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Sign Up Successful!")));
+class _AnimatedRoleTileState extends State<AnimatedRoleTile>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _fadeAnimation;
 
-        // Navigate to login screen
-        Navigator.pushReplacementNamed(context, '/login');
-      } on FirebaseAuthException catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.message ?? "Sign Up Failed")));
-      }
-    }
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _fadeAnimation = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
+
+    Future.delayed(widget.delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: ListTile(
+          title: Text(
+            widget.role,
+            style: const TextStyle(color: Colors.white, fontSize: 18),
+          ),
+          onTap: widget.onTap,
+        ),
+      ),
+    );
   }
 }

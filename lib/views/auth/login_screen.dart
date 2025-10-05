@@ -5,6 +5,7 @@ import 'package:eventtoria/views/auth/signup_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'forgot_pass.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,7 +17,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  String selectedRole = 'Planner'; // Default role
+  String selectedRole = 'Select Role';
   final List<String> roles = ['Planner', 'Vendor', 'Admin'];
 
   final _auth = FirebaseAuth.instance;
@@ -26,9 +27,11 @@ class _LoginScreenState extends State<LoginScreen> {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
+    if (email.isEmpty || password.isEmpty || selectedRole == 'Select Role') {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter email and password")),
+        const SnackBar(
+          content: Text("Please enter email, password, and select role"),
+        ),
       );
       return;
     }
@@ -36,29 +39,30 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _loading = true);
 
     try {
-      // Sign in with Firebase
       UserCredential userCred = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // Get role from Firestore
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+      DocumentReference userRef = FirebaseFirestore.instance
           .collection('users')
-          .doc(userCred.user!.uid)
-          .get();
+          .doc(userCred.user!.uid);
 
+      DocumentSnapshot userDoc = await userRef.get();
+
+      // Auto-create Firestore document if missing
       if (!userDoc.exists) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("User record not found")));
-        setState(() => _loading = false);
-        return;
+        await userRef.set({
+          'name': '',
+          'email': email,
+          'role': selectedRole,
+          'uid': userCred.user!.uid,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
       }
 
-      String role = userDoc.get('role');
+      String role = (await userRef.get()).get('role');
 
-      // Check if selected role matches Firestore role
       if (role != selectedRole) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -93,6 +97,37 @@ class _LoginScreenState extends State<LoginScreen> {
     } finally {
       setState(() => _loading = false);
     }
+  }
+
+  void _showRoleSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF161022),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: roles.asMap().entries.map((entry) {
+              int index = entry.key;
+              String role = entry.value;
+
+              return AnimatedRoleTile(
+                role: role,
+                delay: Duration(milliseconds: 100 * index),
+                onTap: () {
+                  setState(() => selectedRole = role);
+                  Navigator.pop(context);
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -148,29 +183,52 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
+
+              // Forgot Password
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ForgotPasswordScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    "Forgot Password?",
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
 
               // Role Selector
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1f1a30),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: DropdownButton<String>(
-                  value: selectedRole,
-                  dropdownColor: const Color(0xFF1f1a30),
-                  isExpanded: true,
-                  underline: const SizedBox(),
-                  style: const TextStyle(color: Colors.white),
-                  items: roles.map((role) {
-                    return DropdownMenuItem(value: role, child: Text(role));
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedRole = value!;
-                    });
-                  },
+              GestureDetector(
+                onTap: _showRoleSelector,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1f1a30),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        selectedRole,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const Icon(Icons.arrow_drop_down, color: Colors.white),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 32),
@@ -212,6 +270,77 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// Animated Role Tile
+class AnimatedRoleTile extends StatefulWidget {
+  final String role;
+  final Duration delay;
+  final VoidCallback onTap;
+
+  const AnimatedRoleTile({
+    super.key,
+    required this.role,
+    required this.delay,
+    required this.onTap,
+  });
+
+  @override
+  State<AnimatedRoleTile> createState() => _AnimatedRoleTileState();
+}
+
+class _AnimatedRoleTileState extends State<AnimatedRoleTile>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _fadeAnimation = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
+
+    Future.delayed(widget.delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: ListTile(
+          title: Text(
+            widget.role,
+            style: const TextStyle(color: Colors.white, fontSize: 18),
+          ),
+          onTap: widget.onTap,
         ),
       ),
     );
