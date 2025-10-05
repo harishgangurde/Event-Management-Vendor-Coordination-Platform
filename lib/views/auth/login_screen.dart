@@ -2,6 +2,7 @@ import 'package:eventtoria/views/admin/dashboard_admin.dart';
 import 'package:eventtoria/views/planner/dashboard_planner.dart';
 import 'package:eventtoria/views/vendor/dashboard_vendor.dart';
 import 'package:eventtoria/views/auth/signup_screen.dart';
+import 'package:eventtoria/widgets/role_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -17,17 +18,21 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  String selectedRole = 'Select Role';
+  String? selectedRole;
   final List<String> roles = ['Planner', 'Vendor', 'Admin'];
 
   final _auth = FirebaseAuth.instance;
   bool _loading = false;
 
+  final Color backgroundDark = const Color(0xFF161022);
+  final Color cardDark = const Color(0xFF1f1a30);
+  final Color primaryColor = const Color(0xFF7F06F9);
+
   void login() async {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty || selectedRole == 'Select Role') {
+    if (email.isEmpty || password.isEmpty || selectedRole == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Please enter email, password, and select role"),
@@ -50,7 +55,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
       DocumentSnapshot userDoc = await userRef.get();
 
-      // Auto-create Firestore document if missing
       if (!userDoc.exists) {
         await userRef.set({
           'name': '',
@@ -99,41 +103,33 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _showRoleSelector() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF161022),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  Widget _customTextField(
+    String hint,
+    TextEditingController controller, {
+    bool obscure = false,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.grey),
+        filled: true,
+        fillColor: cardDark,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.all(16),
       ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: roles.asMap().entries.map((entry) {
-              int index = entry.key;
-              String role = entry.value;
-
-              return AnimatedRoleTile(
-                role: role,
-                delay: Duration(milliseconds: 100 * index),
-                onTap: () {
-                  setState(() => selectedRole = role);
-                  Navigator.pop(context);
-                },
-              );
-            }).toList(),
-          ),
-        );
-      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF161022),
+      backgroundColor: backgroundDark,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -150,41 +146,11 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 32),
 
-              // Email
-              TextField(
-                controller: emailController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Email',
-                  hintStyle: const TextStyle(color: Colors.grey),
-                  filled: true,
-                  fillColor: const Color(0xFF1f1a30),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
+              _customTextField("Email", emailController),
               const SizedBox(height: 16),
+              _customTextField("Password", passwordController, obscure: true),
+              const SizedBox(height: 8),
 
-              // Password
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Password',
-                  hintStyle: const TextStyle(color: Colors.grey),
-                  filled: true,
-                  fillColor: const Color(0xFF1f1a30),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-
-              // Forgot Password
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -204,41 +170,18 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Role Selector
-              GestureDetector(
-                onTap: _showRoleSelector,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 16,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1f1a30),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        selectedRole,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const Icon(Icons.arrow_drop_down, color: Colors.white),
-                    ],
-                  ),
-                ),
+              RoleSelector(
+                selectedRole: selectedRole,
+                roles: roles,
+                onRoleSelected: (role) => setState(() => selectedRole = role),
               ),
               const SizedBox(height: 32),
 
-              // Login Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5b13ec),
+                    backgroundColor: primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -254,11 +197,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-
-              // Signup Link
               TextButton(
                 onPressed: () {
-                  Navigator.push(
+                  Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(builder: (_) => const SignupScreen()),
                   );
@@ -270,77 +211,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// Animated Role Tile
-class AnimatedRoleTile extends StatefulWidget {
-  final String role;
-  final Duration delay;
-  final VoidCallback onTap;
-
-  const AnimatedRoleTile({
-    super.key,
-    required this.role,
-    required this.delay,
-    required this.onTap,
-  });
-
-  @override
-  State<AnimatedRoleTile> createState() => _AnimatedRoleTileState();
-}
-
-class _AnimatedRoleTileState extends State<AnimatedRoleTile>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _fadeAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
-    _fadeAnimation = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
-
-    Future.delayed(widget.delay, () {
-      if (mounted) _controller.forward();
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: ListTile(
-          title: Text(
-            widget.role,
-            style: const TextStyle(color: Colors.white, fontSize: 18),
-          ),
-          onTap: widget.onTap,
         ),
       ),
     );
