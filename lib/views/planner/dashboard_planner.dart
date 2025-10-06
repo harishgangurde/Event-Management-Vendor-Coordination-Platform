@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'profile_planner.dart';
 import 'notification_screen.dart';
 import 'chat_screen.dart';
+import 'package:flutter/services.dart';
 
 class DashboardPlanner extends StatefulWidget {
   const DashboardPlanner({super.key});
@@ -15,10 +16,8 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
   int selectedIndex = 0;
 
   void onDestinationSelected(int index) {
-    // 1. Update the state to visually select the tapped icon immediately
     setState(() => selectedIndex = index);
 
-    // 2. Define the target screen
     Widget? targetScreen;
 
     if (index == 1) {
@@ -31,13 +30,11 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
       targetScreen = const NotificationScreen();
     }
 
-    // 3. Navigate and reset index when navigation occurs
     if (targetScreen != null) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => targetScreen!),
       ).then((_) {
-        // When the pushed screen is popped (user hits back), reset to Home (index 0).
         setState(() {
           selectedIndex = 0;
         });
@@ -45,67 +42,74 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
     }
   }
 
+  Future<bool> _onWillPop() async {
+    // Exit the app when back button is pressed
+    await SystemNavigator.pop();
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Row(
-          children: [
-            CircleAvatar(
-              radius: 14,
-              backgroundColor: Color(0xFF7F06F9),
-              child: Text(
-                'AI',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false, // Removes the back button
+          title: const Row(
+            children: [
+              CircleAvatar(
+                radius: 14,
+                backgroundColor: Color(0xFF7F06F9),
+                child: Text(
+                  'AI',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-            ),
-            SizedBox(width: 8),
-            Text('Eventtoria', style: TextStyle(fontWeight: FontWeight.bold)),
+              SizedBox(width: 8),
+              Text('Eventtoria', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          actions: const [],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            buildSectionTitle('Upcoming Events'),
+            const SizedBox(height: 8),
+            buildUpcomingEvents(),
+            const SizedBox(height: 24),
+            buildSectionTitle('Quick Stats'),
+            const SizedBox(height: 8),
+            buildQuickStats(theme),
+            const SizedBox(height: 24),
+            buildSectionTitle('AI Suggestions'),
+            const SizedBox(height: 8),
+            buildAISuggestions(context),
           ],
         ),
-        // FINAL FIX: actions list is empty, removing the settings button
-        actions: const [],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          buildSectionTitle('Upcoming Events'),
-          const SizedBox(height: 8),
-          buildUpcomingEvents(),
-          const SizedBox(height: 24),
-          buildSectionTitle('Quick Stats'),
-          const SizedBox(height: 8),
-          buildQuickStats(theme),
-          const SizedBox(height: 24),
-          buildSectionTitle('AI Suggestions'),
-          const SizedBox(height: 8),
-          buildAISuggestions(context),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.event), label: 'Events'),
-          NavigationDestination(icon: Icon(Icons.chat), label: 'Chat'),
-          NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
-          NavigationDestination(
-            icon: Icon(Icons.notifications),
-            label: 'Notify',
-          ),
-        ],
-        // The selectedIndex state variable handles the highlighting
-        selectedIndex: selectedIndex,
-        onDestinationSelected: onDestinationSelected,
+        bottomNavigationBar: NavigationBar(
+          destinations: const [
+            NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
+            NavigationDestination(icon: Icon(Icons.event), label: 'Events'),
+            NavigationDestination(icon: Icon(Icons.chat), label: 'Chat'),
+            NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
+            NavigationDestination(
+              icon: Icon(Icons.notifications),
+              label: 'Notify',
+            ),
+          ],
+          selectedIndex: selectedIndex,
+          onDestinationSelected: onDestinationSelected,
+        ),
       ),
     );
   }
 
-  /// ---------- Section Title ----------
   Widget buildSectionTitle(String title) {
     return Text(
       title,
@@ -113,7 +117,6 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
     );
   }
 
-  /// ---------- Upcoming Events (Assets Updated) ----------
   Widget buildUpcomingEvents() {
     final events = [
       {
@@ -174,27 +177,22 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
     );
   }
 
-  /// ---------- Quick Stats (Color Fixed) ----------
   Widget buildQuickStats(ThemeData theme) {
     return Column(
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Budget (First Column)
             Expanded(child: statCard('Budget', '₹500,000', theme)),
             const SizedBox(width: 12),
-            // Guest Count (Second Column)
             Expanded(child: statCard('Guest Count', '250', theme)),
           ],
         ),
         const SizedBox(height: 12),
-        // Pending Tasks (Full Width below the first two)
         Container(
-          width: double.infinity, // Ensures full width
+          width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            // FIXED COLOR: Using primary color with a low opacity (0.15)
             color: theme.colorScheme.primary.withOpacity(0.15),
             borderRadius: BorderRadius.circular(12),
           ),
@@ -210,12 +208,9 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
+              const Text(
                 '15',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -225,11 +220,9 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
   }
 
   Widget statCard(String label, String value, ThemeData theme) {
-    // This is used for Budget and Guest Count
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        // FIXED COLOR: Using primary color with a low opacity (0.15)
         color: theme.colorScheme.primary.withOpacity(0.15),
         borderRadius: BorderRadius.circular(12),
       ),
@@ -254,7 +247,6 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
     );
   }
 
-  /// ---------- AI Suggestions (Color Fixed) ----------
   Widget buildAISuggestions(BuildContext context) {
     final suggestions = [
       {
@@ -280,11 +272,8 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              // Use a plain color scheme for the card background to simulate the dark mode gray background
               color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(
-                      0xFF313131,
-                    ) // dark:bg-gray-800/50 close equivalent
+                  ? const Color(0xFF313131)
                   : Theme.of(context).cardColor,
               child: Padding(
                 padding: const EdgeInsets.all(12),
@@ -337,7 +326,6 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
                           FilledButton.tonal(
                             onPressed: () {},
                             style: FilledButton.styleFrom(
-                              // Keep the primary color for the button background
                               backgroundColor: Theme.of(
                                 context,
                               ).colorScheme.primary,
@@ -350,7 +338,7 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
                               ),
                             ),
                             child: const Text(
-                              'View All', // Using 'View All' placeholder text for consistency
+                              'View All',
                               style: TextStyle(color: Colors.white),
                             ),
                           ),

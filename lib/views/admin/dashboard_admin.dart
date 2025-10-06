@@ -1,355 +1,342 @@
+import 'package:eventtoria/views/admin/analytics_admin.dart';
+import 'package:eventtoria/views/admin/setting_admin.dart';
+import 'package:eventtoria/views/admin/notification_admin.dart';
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'users_admin.dart';
+import 'vendor_approval.dart';
 
-class AdminDashboard extends StatelessWidget {
+class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
 
   @override
+  State<AdminDashboard> createState() => _AdminDashboardState();
+}
+
+class _AdminDashboardState extends State<AdminDashboard> {
+  final Color backgroundDark = const Color(0xFF161022);
+  final Color cardDark = const Color(0xFF1F1A30);
+  final Color primary = const Color(0xFF5B13EC);
+  final Color secondary = const Color(0xFFA855F7);
+  final Color textLight = const Color(0xFFE5E7EB);
+  final Color textDark = const Color(0xFF9CA3AF);
+
+  int _selectedIndex = 0;
+
+  late final List<Widget> _pages = [
+    _buildDashboardContent(),
+    const AdminUsers(),
+    const VendorApproval(),
+    const AdminAnalytics(),
+    const AdminSettings(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final double width = MediaQuery.of(context).size.width;
+    final bool isTablet = width >= 600 && width < 1000;
+    final bool isDesktop = width >= 1000;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF161022),
+      backgroundColor: backgroundDark,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF161022).withOpacity(0.8),
+        backgroundColor: backgroundDark.withOpacity(0.8),
         elevation: 0,
+        automaticallyImplyLeading: false,
         title: Row(
           children: [
-            Image.network(
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuCO63qdvL9K8YHhFc--PN-aig4y0DDxGKecMy8WKiwDguozWtNulPN7xqFt84O7BegUiag46BJbi_EPn40rqk-I2nujT1Sl7wl05xwMpUavwutbWWXl_qbjKqoNBItITLQhwBD-B0McnAIayv7x76XBBXqPJd4IuwcieiuFEiWBwE4e6wiF9L6nAdbVscYYE4tlSbpCngEDrwzG10S-YKPirHgXM4a-kT5XR2EjZFGjcHqC5vz3bHhXze7VqMeI_oDdje2XtdOZtg',
-              height: 32,
-              width: 32,
-            ),
-            const SizedBox(width: 8),
-            const Text(
+            Image.asset('assets/images/logo.png', height: 35, width: 35),
+            const SizedBox(width: 10),
+            Text(
               'Admin Dashboard',
-              style: TextStyle(
-                fontSize: 20,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: isTablet || isDesktop ? 24 : 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: textLight,
               ),
             ),
           ],
         ),
         actions: [
           IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.notifications, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AdminNotifications(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: backgroundDark.withOpacity(0.9),
+        selectedItemColor: primary,
+        unselectedItemColor: textDark,
+        currentIndex: _selectedIndex,
+        type: BottomNavigationBarType.fixed,
+        showUnselectedLabels: true,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard_outlined),
+            label: "Dashboard",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_outline),
+            label: "Users",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.store_outlined),
+            label: "Vendors",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.analytics_outlined),
+            label: "Analytics",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings_outlined),
+            label: "Settings",
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------- Dashboard Content ----------
+  Widget _buildDashboardContent() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double width = MediaQuery.of(context).size.width;
+        final bool isTablet = width >= 600 && width < 1000;
+        final bool isDesktop = width >= 1000;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(
+            isDesktop
+                ? 32
+                : isTablet
+                ? 24
+                : 16,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Stats Grid
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: isDesktop
+                    ? 4
+                    : isTablet
+                    ? 3
+                    : 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: isDesktop ? 1.6 : 1.2,
+                children: [
+                  _buildStatCard(
+                    icon: Icons.group,
+                    title: "Planners",
+                    value: "1,250",
+                    change: "+15% last month",
+                    color: Colors.greenAccent,
+                  ),
+                  _buildStatCard(
+                    icon: Icons.storefront,
+                    title: "Vendors",
+                    value: "8,420",
+                    change: "+22% last month",
+                    color: Colors.greenAccent,
+                  ),
+                  _buildStatCard(
+                    icon: Icons.analytics,
+                    title: "Analytics",
+                    value: "320",
+                    change: "+8% last month",
+                    color: Colors.greenAccent,
+                  ),
+                  _buildStatCard(
+                    icon: Icons.payments,
+                    title: "Transactions",
+                    value: "\$1.2M",
+                    change: "-3% last month",
+                    color: Colors.redAccent,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              // Actions Section
+              Text(
+                "Actions",
+                style: GoogleFonts.plusJakartaSans(
+                  color: textLight,
+                  fontWeight: FontWeight.w600,
+                  fontSize: isTablet || isDesktop ? 20 : 18,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: [
+                  _buildActionCard(
+                    title: "Vendor Registrations",
+                    subtitle: "3 new pending requests",
+                    buttonText: "Approve/Reject",
+                    buttonColor: primary,
+                    icon: Icons.arrow_forward,
+                  ),
+                  _buildActionCard(
+                    title: "Monitor Activity",
+                    subtitle: "View platform usage logs",
+                    buttonText: "View Logs",
+                    buttonColor: secondary.withOpacity(0.2),
+                    icon: Icons.monitor_heart_outlined,
+                    textColor: secondary,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ---------- Reusable Widgets ----------
+  Widget _buildStatCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required String change,
+    required Color color,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {},
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: cardDark,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.4),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Stats Grid
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 2,
+            Row(
               children: [
-                _statCard('Planners', '1,250', '+15%', Colors.green),
-                _statCard('Vendors', '8,420', '+22%', Colors.green),
-                _statCard('Events', '3,200', '+8%', Colors.green),
-                _statCard('Transactions', '\$1.2M', '-3%', Colors.red),
+                Icon(icon, color: secondary, size: 20),
+                const SizedBox(width: 6),
+                Text(title, style: TextStyle(color: textDark, fontSize: 13)),
               ],
             ),
-            const SizedBox(height: 24),
-
-            // Analytics Chart
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1f1a30),
-                borderRadius: BorderRadius.circular(12),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(
+                color: textLight,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
               ),
-              height: 250,
+            ),
+            Text(change, style: TextStyle(color: color, fontSize: 12)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionCard({
+    required String title,
+    required String subtitle,
+    required String buttonText,
+    required Color buttonColor,
+    required IconData icon,
+    Color? textColor,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {},
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: cardDark,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.4),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(
+              flex: 2,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Analytics',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      DropdownButton<String>(
-                        value: 'Monthly',
-                        dropdownColor: const Color(0xFF1f1a30),
-                        underline: Container(),
-                        style: const TextStyle(color: Colors.white),
-                        items: <String>['Monthly', 'Weekly', 'Yearly'].map((
-                          String value,
-                        ) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                        onChanged: (_) {},
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 180, // fixed height to avoid overflow
-                    child: LineChart(
-                      LineChartData(
-                        gridData: FlGridData(
-                          show: true,
-                          drawVerticalLine: false,
-                          getDrawingHorizontalLine: (_) =>
-                              FlLine(color: const Color(0xFF1f1a30)),
-                        ),
-                        titlesData: FlTitlesData(
-                          bottomTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              getTitlesWidget: (value, meta) {
-                                const months = [
-                                  'Jan',
-                                  'Feb',
-                                  'Mar',
-                                  'Apr',
-                                  'May',
-                                  'Jun',
-                                ];
-                                return Text(
-                                  months[value.toInt() % 6],
-                                  style: const TextStyle(
-                                    color: Color(0xFF9ca3af),
-                                  ),
-                                );
-                              },
-                              interval: 1,
-                            ),
-                          ),
-                          leftTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              getTitlesWidget: (value, meta) => Text(
-                                value.toInt().toString(),
-                                style: const TextStyle(
-                                  color: Color(0xFF9ca3af),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        lineBarsData: [
-                          LineChartBarData(
-                            spots: const [
-                              FlSpot(0, 65),
-                              FlSpot(1, 59),
-                              FlSpot(2, 80),
-                              FlSpot(3, 81),
-                              FlSpot(4, 56),
-                              FlSpot(5, 95),
-                            ],
-                            isCurved: true,
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF7e42f5), Color(0xFF5b13ec)],
-                            ),
-                            barWidth: 3,
-                            belowBarData: BarAreaData(
-                              show: true,
-                              gradient: LinearGradient(
-                                colors: [
-                                  const Color(0xFF5b13ec).withOpacity(0.5),
-                                  const Color(0xFF5b13ec).withOpacity(0),
-                                ],
-                              ),
-                            ),
-                            dotData: FlDotData(
-                              show: true,
-                              getDotPainter: (spot, percent, bar, index) =>
-                                  FlDotCirclePainter(
-                                    radius: 3,
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                            ),
-                          ),
-                        ],
-                      ),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: textLight,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
                     ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(color: textDark, fontSize: 13),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-
-            // Action Cards
-            _actionCard(
-              'Vendor Registrations',
-              '3 new pending requests',
-              Colors.purple,
-              buttonText: 'Approve/Reject',
-              icon: Icons.arrow_forward,
-            ),
-            const SizedBox(height: 12),
-            _actionCard(
-              'Monitor Activity',
-              'View platform usage logs',
-              Colors.purple.shade200,
-              buttonText: 'View Logs',
-              icon: Icons.monitor,
-            ),
-            const SizedBox(height: 24),
-
-            // AI Assistant
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF5b13ec), Color(0xFFa855f7)],
+            ElevatedButton.icon(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: buttonColor,
+                foregroundColor: textColor ?? Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                borderRadius: BorderRadius.circular(12),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 14,
+                ),
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.smart_toy, color: Colors.white, size: 36),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'AI Assistant',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text(
-                        'Get insights and suggestions.',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                    child: const Icon(Icons.chevron_right, color: Colors.white),
-                  ),
-                ],
+              icon: Icon(icon, size: 18),
+              label: Text(
+                buttonText,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: textColor ?? Colors.white,
+                ),
               ),
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF161022).withOpacity(0.8),
-        selectedItemColor: const Color(0xFF5b13ec),
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Users'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.event_note),
-            label: 'Events',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _statCard(
-    String title,
-    String value,
-    String change,
-    Color changeColor,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1f1a30),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.circle, color: Colors.purple, size: 16),
-              const SizedBox(width: 6),
-              Text(title, style: const TextStyle(color: Color(0xFF9ca3af))),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          Text(change, style: TextStyle(fontSize: 12, color: changeColor)),
-        ],
-      ),
-    );
-  }
-
-  Widget _actionCard(
-    String title,
-    String subtitle,
-    Color color, {
-    required String buttonText,
-    required IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1f1a30),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(subtitle, style: const TextStyle(color: Color(0xFF9ca3af))),
-            ],
-          ),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: color,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            onPressed: () {},
-            icon: Icon(icon, size: 16),
-            label: Text(buttonText, style: const TextStyle(fontSize: 12)),
-          ),
-        ],
       ),
     );
   }

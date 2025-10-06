@@ -1,6 +1,7 @@
 import 'package:eventtoria/views/admin/dashboard_admin.dart';
 import 'package:eventtoria/views/planner/dashboard_planner.dart';
 import 'package:eventtoria/views/vendor/dashboard_vendor.dart';
+import 'package:eventtoria/views/auth/login_screen.dart';
 import 'package:eventtoria/widgets/role_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -13,7 +14,8 @@ class SignupScreen extends StatefulWidget {
   State<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> {
+class _SignupScreenState extends State<SignupScreen>
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _auth = FirebaseAuth.instance;
 
@@ -28,9 +30,46 @@ class _SignupScreenState extends State<SignupScreen> {
   final List<String> roles = ['Planner', 'Vendor', 'Admin'];
   bool _loading = false;
 
+  // Password visibility toggles
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+
   final Color primaryColor = const Color(0xFF7F06F9);
   final Color backgroundDark = const Color(0xFF161022);
   final Color cardDark = const Color(0xFF1f1a30);
+
+  late AnimationController _formController;
+  late Animation<double> _formFade;
+  late Animation<Offset> _formSlide;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _formController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _formFade = CurvedAnimation(parent: _formController, curve: Curves.easeIn);
+    _formSlide = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _formController, curve: Curves.easeOut));
+
+    _formController.forward();
+  }
+
+  @override
+  void dispose() {
+    _formController.dispose();
+    nameController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   void _signUp() async {
     if (_formKey.currentState!.validate()) {
@@ -61,23 +100,25 @@ class _SignupScreenState extends State<SignupScreen> {
               'createdAt': FieldValue.serverTimestamp(),
             });
 
-        // Navigate directly to dashboard
+        // Navigate to dashboard
+        Widget destination;
         if (_role == 'Planner') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const DashboardPlanner()),
-          );
+          destination = const DashboardPlanner();
         } else if (_role == 'Vendor') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const VendorDashboard()),
-          );
-        } else if (_role == 'Admin') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const AdminDashboard()),
-          );
+          destination = const VendorDashboard();
+        } else {
+          destination = const AdminDashboard();
         }
+
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (_, __, ___) => destination,
+            transitionsBuilder: (_, animation, __, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
+        );
 
         ScaffoldMessenger.of(
           context,
@@ -92,14 +133,18 @@ class _SignupScreenState extends State<SignupScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    nameController.dispose();
-    emailController.dispose();
-    phoneController.dispose();
-    passwordController.dispose();
-    confirmPasswordController.dispose();
-    super.dispose();
+  void _navigateToLogin() {
+    _formController.reverse().then((_) {
+      Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const LoginScreen(),
+          transitionsBuilder: (_, animation, __, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        ),
+      );
+    });
   }
 
   Widget _customTextField(
@@ -108,11 +153,14 @@ class _SignupScreenState extends State<SignupScreen> {
     String errorText, {
     TextInputType keyboard = TextInputType.text,
     bool obscure = false,
+    bool isConfirmPassword = false,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
-      obscureText: obscure,
+      obscureText: obscure
+          ? (isConfirmPassword ? _obscureConfirmPassword : _obscurePassword)
+          : false,
       keyboardType: keyboard,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
@@ -126,6 +174,29 @@ class _SignupScreenState extends State<SignupScreen> {
           borderSide: BorderSide(color: primaryColor),
         ),
         contentPadding: const EdgeInsets.all(16),
+        suffixIcon: obscure
+            ? IconButton(
+                icon: Icon(
+                  isConfirmPassword
+                      ? (_obscureConfirmPassword
+                            ? Icons.visibility_off
+                            : Icons.visibility)
+                      : (_obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility),
+                  color: Colors.grey.shade400,
+                ),
+                onPressed: () {
+                  setState(() {
+                    if (isConfirmPassword) {
+                      _obscureConfirmPassword = !_obscureConfirmPassword;
+                    } else {
+                      _obscurePassword = !_obscurePassword;
+                    }
+                  });
+                },
+              )
+            : null,
       ),
       validator: validator ?? (val) => val!.isEmpty ? errorText : null,
     );
@@ -135,90 +206,117 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundDark,
+      appBar: AppBar(
+        backgroundColor: backgroundDark,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: _navigateToLogin,
+        ),
+        title: const Text('Sign Up', style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+      ),
       body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  const Text(
-                    "Eventtoria",
-                    style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  _customTextField("Name", nameController, "Enter name"),
-                  const SizedBox(height: 12),
-                  _customTextField(
-                    "Email",
-                    emailController,
-                    "Enter email",
-                    keyboard: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: 12),
-                  _customTextField(
-                    "Phone",
-                    phoneController,
-                    "Enter phone",
-                    keyboard: TextInputType.phone,
-                  ),
-                  const SizedBox(height: 12),
-                  _customTextField(
-                    "Password",
-                    passwordController,
-                    "Enter password",
-                    obscure: true,
-                  ),
-                  const SizedBox(height: 12),
-                  _customTextField(
-                    "Confirm Password",
-                    confirmPasswordController,
-                    "Password does not match",
-                    obscure: true,
-                    validator: (val) {
-                      if (val!.isEmpty) return "Enter password again";
-                      if (val != passwordController.text)
-                        return "Passwords do not match";
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  RoleSelector(
-                    selectedRole: _role,
-                    roles: roles,
-                    onRoleSelected: (role) => setState(() => _role = role),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _loading ? null : _signUp,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+        child: FadeTransition(
+          opacity: _formFade,
+          child: SlideTransition(
+            position: _formSlide,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      const Text(
+                        "Eventtoria",
+                        style: TextStyle(
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
-                      child: _loading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text(
-                              "Sign Up",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: Colors.white,
-                              ),
+                      const SizedBox(height: 32),
+                      _customTextField("Name", nameController, "Enter name"),
+                      const SizedBox(height: 12),
+                      _customTextField(
+                        "Email",
+                        emailController,
+                        "Enter email",
+                        keyboard: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 12),
+                      _customTextField(
+                        "Phone",
+                        phoneController,
+                        "Enter phone",
+                        keyboard: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 12),
+                      _customTextField(
+                        "Password",
+                        passwordController,
+                        "Enter password",
+                        obscure: true,
+                      ),
+                      const SizedBox(height: 12),
+                      _customTextField(
+                        "Confirm Password",
+                        confirmPasswordController,
+                        "Password does not match",
+                        obscure: true,
+                        isConfirmPassword: true,
+                        validator: (val) {
+                          if (val!.isEmpty) return "Enter password again";
+                          if (val != passwordController.text)
+                            return "Passwords do not match";
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      RoleSelector(
+                        selectedRole: _role,
+                        roles: roles,
+                        onRoleSelected: (role) => setState(() => _role = role),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _loading ? null : _signUp,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                    ),
+                          ),
+                          child: _loading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                              : const Text(
+                                  "Sign Up",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: _navigateToLogin,
+                        child: const Text(
+                          "Already have an account? Login",
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),

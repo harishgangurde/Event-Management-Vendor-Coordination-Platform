@@ -5,6 +5,7 @@ import 'package:eventtoria/views/vendor/notification_vendor.dart';
 import 'package:eventtoria/views/vendor/profile_vendor.dart';
 import 'package:eventtoria/views/vendor/setting_vendor.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class VendorDashboard extends StatefulWidget {
   const VendorDashboard({super.key});
@@ -29,7 +30,7 @@ class _VendorDashboardState extends State<VendorDashboard> {
     'Booking Requests',
     'Chat',
     'Profile',
-    'Notifications'
+    'Notifications',
   ];
 
   void _onItemTapped(int index) {
@@ -38,32 +39,21 @@ class _VendorDashboardState extends State<VendorDashboard> {
     });
   }
 
+  Future<bool> _onWillPop() async {
+    // Exit the app when back button is pressed
+    await SystemNavigator.pop();
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Theme(
       data: AppTheme.darkTheme,
       child: WillPopScope(
-        onWillPop: () async {
-          if (_selectedIndex != 0) {
-            setState(() {
-              _selectedIndex = 0;
-            });
-            return false;
-          }
-          return true;
-        },
+        onWillPop: _onWillPop,
         child: Scaffold(
           appBar: AppBar(
-            leading: _selectedIndex != 0
-                ? IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: () {
-                      setState(() {
-                        _selectedIndex = 0;
-                      });
-                    },
-                  )
-                : null,
+            automaticallyImplyLeading: false, // Removes back button
             title: _selectedIndex == 0
                 ? Row(
                     children: [
@@ -74,7 +64,7 @@ class _VendorDashboardState extends State<VendorDashboard> {
                           gradient: LinearGradient(
                             colors: [
                               AppTheme.kAccentPurple,
-                              AppTheme.kPrimaryColor
+                              AppTheme.kPrimaryColor,
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -82,22 +72,32 @@ class _VendorDashboardState extends State<VendorDashboard> {
                           shape: BoxShape.circle,
                         ),
                         child: const Center(
-                          child: Text('AI',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold)),
+                          child: Text(
+                            'AI',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text('Vendor Dashboard',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Vendor Dashboard',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   )
-                : Text(_titles[_selectedIndex],
+                : Text(
+                    _titles[_selectedIndex],
                     style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold)),
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
             actions: [
               IconButton(
                 icon: const Icon(Icons.settings, color: Colors.white),
@@ -105,25 +105,30 @@ class _VendorDashboardState extends State<VendorDashboard> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const VendorSettingsScreen()),
+                      builder: (context) => const VendorSettingsScreen(),
+                    ),
                   );
                 },
               ),
             ],
           ),
-          body: Center(
-            child: _widgetOptions.elementAt(_selectedIndex),
-          ),
+          body: Center(child: _widgetOptions.elementAt(_selectedIndex)),
           bottomNavigationBar: BottomNavigationBar(
             items: const <BottomNavigationBarItem>[
               BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
               BottomNavigationBarItem(
-                  icon: Icon(Icons.event_note), label: 'Bookings'),
+                icon: Icon(Icons.event_note),
+                label: 'Bookings',
+              ),
               BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
               BottomNavigationBarItem(
-                  icon: Icon(Icons.person), label: 'Profile'),
+                icon: Icon(Icons.person),
+                label: 'Profile',
+              ),
               BottomNavigationBarItem(
-                  icon: Icon(Icons.notifications), label: 'Notify'),
+                icon: Icon(Icons.notifications),
+                label: 'Notify',
+              ),
             ],
             currentIndex: _selectedIndex,
             selectedItemColor: AppTheme.kAccentPurple,
@@ -138,6 +143,7 @@ class _VendorDashboardState extends State<VendorDashboard> {
   }
 }
 
+// --------------------- Vendor Home Screen ---------------------
 class VendorHomeScreen extends StatelessWidget {
   const VendorHomeScreen({super.key});
 
@@ -155,10 +161,16 @@ class VendorHomeScreen extends StatelessWidget {
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
-                _eventCard('assets/images/eventwedding.jpg',
-                    'Grand Wedding Reception', 'October 15, 2024'),
-                _eventCard('assets/images/birthday_event.jpg',
-                    "Sarah's 30th Birthday", 'November 20, 2024'),
+                _eventCard(
+                  'assets/images/eventwedding.jpg',
+                  'Grand Wedding Reception',
+                  'October 15, 2024',
+                ),
+                _eventCard(
+                  'assets/images/birthday_event.jpg',
+                  "Sarah's 30th Birthday",
+                  'November 20, 2024',
+                ),
               ],
             ),
           ),
@@ -175,8 +187,11 @@ class VendorHomeScreen extends StatelessWidget {
               childAspectRatio: 1.5,
             ),
             children: [
-              _statCard('Total Earnings', '₹1,25,000',
-                  Icons.account_balance_wallet),
+              _statCard(
+                'Total Earnings',
+                '₹1,25,000',
+                Icons.account_balance_wallet,
+              ),
               _statCard('Completed Events', '12', Icons.check_circle),
               _statCard('Pending Bookings', '3', Icons.pending_actions),
               _statCard('Reviews', '4.8/5', Icons.star),
@@ -185,19 +200,32 @@ class VendorHomeScreen extends StatelessWidget {
           const SizedBox(height: 24),
           _buildSectionTitle('Recent Activity'),
           const SizedBox(height: 12),
-          _activityTile('Payment of ₹25,000 received', 'from Rugwed Khairnar',
-              Icons.payment, Colors.green),
-          _activityTile('New Booking Request', "for 'Annual Tech Conference'",
-              Icons.new_releases, Colors.orange),
+          _activityTile(
+            'Payment of ₹25,000 received',
+            'from Rugwed Khairnar',
+            Icons.payment,
+            Colors.green,
+          ),
+          _activityTile(
+            'New Booking Request',
+            "for 'Annual Tech Conference'",
+            Icons.new_releases,
+            Colors.orange,
+          ),
         ],
       ),
     );
   }
 
   Widget _buildSectionTitle(String title) {
-    return Text(title,
-        style: const TextStyle(
-            fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white));
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 22,
+        fontWeight: FontWeight.bold,
+        color: Colors.white,
+      ),
+    );
   }
 
   Widget _eventCard(String imagePath, String title, String date) {
@@ -212,17 +240,21 @@ class VendorHomeScreen extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               image: DecorationImage(
-                  image: AssetImage(imagePath), fit: BoxFit.cover),
+                image: AssetImage(imagePath),
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           const SizedBox(height: 8),
-          Text(title,
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Colors.white)),
-          Text(date,
-              style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: Colors.white,
+            ),
+          ),
+          Text(date, style: const TextStyle(color: Colors.grey, fontSize: 12)),
         ],
       ),
     );
@@ -241,22 +273,33 @@ class VendorHomeScreen extends StatelessWidget {
         children: [
           Icon(icon, color: AppTheme.kAccentPurple, size: 28),
           const SizedBox(height: 8),
-          Text(title,
-              style: const TextStyle(
-                  color: Colors.white70, fontWeight: FontWeight.w500)),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white)),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _activityTile(
-      String title, String subtitle, IconData icon, Color iconColor) {
+    String title,
+    String subtitle,
+    IconData icon,
+    Color iconColor,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -275,7 +318,9 @@ class VendorHomeScreen extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
                   subtitle,
