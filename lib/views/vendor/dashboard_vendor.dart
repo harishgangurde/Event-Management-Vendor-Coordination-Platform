@@ -1,167 +1,206 @@
+import 'package:eventtoria/config/app_theme.dart';
+import 'package:eventtoria/views/vendor/booking_vendor.dart';
+import 'package:eventtoria/views/vendor/chat_vendor.dart';
+import 'package:eventtoria/views/vendor/notification_vendor.dart';
+import 'package:eventtoria/views/vendor/profile_vendor.dart';
+import 'package:eventtoria/views/vendor/setting_vendor.dart';
 import 'package:flutter/material.dart';
 
-class VendorDashboard extends StatelessWidget {
+class VendorDashboard extends StatefulWidget {
   const VendorDashboard({super.key});
 
   @override
+  State<VendorDashboard> createState() => _VendorDashboardState();
+}
+
+class _VendorDashboardState extends State<VendorDashboard> {
+  int _selectedIndex = 0;
+
+  static const List<Widget> _widgetOptions = <Widget>[
+    VendorHomeScreen(),
+    BookingRequestsScreen(),
+    VendorChatScreen(),
+    VendorProfileScreen(),
+    VendorNotificationScreen(),
+  ];
+
+  static const List<String> _titles = <String>[
+    'Vendor Dashboard',
+    'Booking Requests',
+    'Chat',
+    'Profile',
+    'Notifications'
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F5F8), // background-light
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF7F5F8),
-        elevation: 0,
-        title: Row(
-          children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFFA564E9), Color(0xFF7F06F9)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                shape: BoxShape.circle,
+    return Theme(
+      data: AppTheme.darkTheme,
+      child: WillPopScope(
+        onWillPop: () async {
+          if (_selectedIndex != 0) {
+            setState(() {
+              _selectedIndex = 0;
+            });
+            return false;
+          }
+          return true;
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            leading: _selectedIndex != 0
+                ? IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () {
+                      setState(() {
+                        _selectedIndex = 0;
+                      });
+                    },
+                  )
+                : null,
+            title: _selectedIndex == 0
+                ? Row(
+                    children: [
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppTheme.kAccentPurple,
+                              AppTheme.kPrimaryColor
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Center(
+                          child: Text('AI',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Vendor Dashboard',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
+                    ],
+                  )
+                : Text(_titles[_selectedIndex],
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold)),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.settings, color: Colors.white),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const VendorSettingsScreen()),
+                  );
+                },
               ),
-              child: const Center(
-                child: Text(
-                  'AI',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'Vendor Dashboard',
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings, color: Colors.black),
-            onPressed: () {},
+            ],
           ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Upcoming Events Section
-            const Text(
-              'Upcoming Events',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 180,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  _eventCard(
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuD_Ash2Dj4N9PtV17blvYUe7qVvOsgC78FhI00SEsv3lTXm79zPbeB_wMP5GF0_p0Vp0ykZ0wHxsJgRGVmhJE6EQ-wKdZ53fMXHtiNzxkjCoqUhjNNty4WV6DNXP8M6wP7Zkj3HioboLOWsQ06LnA2zF6fPGjqkat5WqiFcUvcfWWnGDBaaM57iINr-7mZ3YUw9U4VscEoBPXee7QrH10EVIpz-aD-n4xOGgNwObC2mesZ0p1iXPLQAEP4bl3etq4nLHUaZx47kRg',
-                    'Grand Wedding Reception',
-                    'October 15, 2024',
-                  ),
-                  _eventCard(
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuCf_Lzl1Hjb5S11jAbYSAOVsuGYadtVWfDIOhZQJkB2Zu-wVzgDkKeETfNwNyAoJDMBg1WTlcWSYhSfIHgIMryrUXx1H0ftvqxCBdLILOFGW5ADf6JUZvT2a1NgJmF8i5QRQMTPW_I5TxwURAT_Sql-sUaoxWf4_Oafl8y5MLm9UqafUafcHr5oTr5BdAXuP0WMYsB2vYyA9OnvAb5pU3o_E8NKmz9IoLz1s7ERPDmUQFiAoGK1-HP_-gmwJpdcc2oUDjBeZHZZSQ',
-                    'Sarah\'s 30th Birthday Bash',
-                    'November 20, 2024',
-                  ),
-                  _eventCard(
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuAfapVUQ7y0jqz7fxo6eNppTMDVv32X-FnS16MU43OKx4ZShcRLkjWyHEjCiEiWSSN9F3C4dG4T9MwprZQmxq6hdUaOlBEqxwpHy-q3QxVDjp4Z7PopL7K998uBQS7BSHSLmb1JQcuPO20FA83KbYTyW7c8YcEJikXNIXWlAmMreNgpcuMCewts7lXTM576ueEb1WKxfg5rjKSTwLUPN1r_ZZ-aPqAoYxjGhs3sFWBXCYcr87ubtkeR_95Cce_oByJLf_EOOV4XrQ',
-                    'Annual Tech Conference',
-                    'December 5, 2024',
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Quick Stats Section
-            const Text(
-              'Quick Stats',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 12),
-            GridView(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 2,
-              ),
-              children: [
-                _statCard('Budget', '₹500,000'),
-                _statCard('Guest Count', '250'),
-                _statCard('Pending Tasks', '15', crossAxis: 2),
-              ],
-            ),
-            const SizedBox(height: 24),
-            // AI Suggestions Section
-            const Text(
-              'AI Suggestions',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Column(
-              children: [
-                _aiSuggestionCard(
-                  'Top Vendor Picks',
-                  'Based on your event needs',
-                  'https://lh3.googleusercontent.com/aida-public/AB6AXuDe8RNX9aJTJc0_U_Q2K7nXHlBOErHYBnfhCXCun0ywU39BkJPqGcILbQLYCLZlkFIMdMsOtrfaGXOX5H4xR28xatdcqxxCsoJfn6JmRqMCvg4ytkQuyV-DlNS6l4WoE-K7MSy9KRuRX52a9PSpwQzL3GUwt3T8h7Bix2zIXw-7KLmbI0E-ebhjYZf0cCssePLTvMzeGdA9LNuz7brlhftfwPtdkv6_9U4a0ONlLzHq0Rg',
-                ),
-                const SizedBox(height: 12),
-                _aiSuggestionCard(
-                  'Theme Ideas',
-                  'Get inspired for your next event',
-                  'https://lh3.googleusercontent.com/aida-public/AB6AXuAdPtPRWEsoWU_Xti_SM6Lclw3_Cd7p3WYNipFluM_tgGpcOjmpc7eD0TDClPLS7Nvh9oart8GzbvW64v1vcRHTB48JhWFhC_sxFQ_1sXin9xZIr7EJh-A43VVQsI2SrGw5KyTLOKySaXkD-i9j11VtcZqx1X3LTvAKFV-LAbDaHpA6oubPE0VrENs3aRMTTOgSDm74G52cEy0UEgrc-ZtjKoLKQw932IEbghmldkRbIwhRuZG3Fh0bbN1feQbFix6rf2x0NEK6GQ',
-                ),
-              ],
-            ),
-          ],
+          body: Center(
+            child: _widgetOptions.elementAt(_selectedIndex),
+          ),
+          bottomNavigationBar: BottomNavigationBar(
+            items: const <BottomNavigationBarItem>[
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.event_note), label: 'Bookings'),
+              BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.person), label: 'Profile'),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.notifications), label: 'Notify'),
+            ],
+            currentIndex: _selectedIndex,
+            selectedItemColor: AppTheme.kAccentPurple,
+            unselectedItemColor: Colors.grey.shade700,
+            backgroundColor: AppTheme.kBackgroundDark,
+            onTap: _onItemTapped,
+            type: BottomNavigationBarType.fixed,
+          ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: const Color(0xFF7F06F9),
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.event), label: 'Events'),
-          BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Notify',
+    );
+  }
+}
+
+class VendorHomeScreen extends StatelessWidget {
+  const VendorHomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle('Upcoming Events'),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 180,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                _eventCard('assets/images/eventwedding.jpg',
+                    'Grand Wedding Reception', 'October 15, 2024'),
+                _eventCard('assets/images/birthday_event.jpg',
+                    "Sarah's 30th Birthday", 'November 20, 2024'),
+              ],
+            ),
           ),
+          const SizedBox(height: 24),
+          _buildSectionTitle('Quick Stats'),
+          const SizedBox(height: 12),
+          GridView(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 1.5,
+            ),
+            children: [
+              _statCard('Total Earnings', '₹1,25,000',
+                  Icons.account_balance_wallet),
+              _statCard('Completed Events', '12', Icons.check_circle),
+              _statCard('Pending Bookings', '3', Icons.pending_actions),
+              _statCard('Reviews', '4.8/5', Icons.star),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _buildSectionTitle('Recent Activity'),
+          const SizedBox(height: 12),
+          _activityTile('Payment of ₹25,000 received', 'from Rugwed Khairnar',
+              Icons.payment, Colors.green),
+          _activityTile('New Booking Request', "for 'Annual Tech Conference'",
+              Icons.new_releases, Colors.orange),
         ],
-        type: BottomNavigationBarType.fixed,
       ),
     );
   }
 
-  Widget _eventCard(String imageUrl, String title, String date) {
+  Widget _buildSectionTitle(String title) {
+    return Text(title,
+        style: const TextStyle(
+            fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white));
+  }
+
+  Widget _eventCard(String imagePath, String title, String date) {
     return Container(
       width: 160,
       margin: const EdgeInsets.only(right: 12),
@@ -173,70 +212,61 @@ class VendorDashboard extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               image: DecorationImage(
-                image: NetworkImage(imageUrl),
-                fit: BoxFit.cover,
-              ),
+                  image: AssetImage(imagePath), fit: BoxFit.cover),
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-          Text(date, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          Text(title,
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.white)),
+          Text(date,
+              style: const TextStyle(color: Colors.grey, fontSize: 12)),
         ],
       ),
     );
   }
 
-  Widget _statCard(String title, String value, {int crossAxis = 1}) {
+  Widget _statCard(String title, String value, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF7F06F9).withOpacity(0.1),
+        color: AppTheme.kCardDarkColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Color(0xFF7F06F9),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          Icon(icon, color: AppTheme.kAccentPurple, size: 28),
+          const SizedBox(height: 8),
+          Text(title,
+              style: const TextStyle(
+                  color: Colors.white70, fontWeight: FontWeight.w500)),
           const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white)),
         ],
       ),
     );
   }
 
-  Widget _aiSuggestionCard(String title, String subtitle, String imageUrl) {
+  Widget _activityTile(
+      String title, String subtitle, IconData icon, Color iconColor) {
     return Container(
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.5),
+        color: AppTheme.kCardDarkColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              image: DecorationImage(
-                image: NetworkImage(imageUrl),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
+          Icon(icon, color: iconColor),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -245,35 +275,12 @@ class VendorDashboard extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+                      color: Colors.white, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   subtitle,
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-                const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7F06F9),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Text('View', style: TextStyle(fontSize: 12)),
-                      SizedBox(width: 4),
-                      Icon(Icons.arrow_forward, size: 14),
-                    ],
-                  ),
+                  style: const TextStyle(color: Colors.grey),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
