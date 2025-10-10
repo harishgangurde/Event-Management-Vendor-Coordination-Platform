@@ -11,19 +11,16 @@ class ProfilePlannerScreen extends StatefulWidget {
 }
 
 class _ProfilePlannerScreenState extends State<ProfilePlannerScreen> {
-  // Local file for the picked image
   File? _selectedImage;
   bool isEditing = false;
   final picker = ImagePicker();
 
-  // Asset paths (Updated to your latest file names)
   static const String _defaultAvatarPath = 'assets/images/default.jpg';
   static const String _pastEvent1 = 'assets/images/eventwedding.jpg';
   static const String _pastEvent2 = 'assets/images/gala.jpg';
   static const String _pastEvent3 = 'assets/images/birthday.jpg';
   static const String _pastEvent4 = 'assets/images/product.jpg';
 
-  // Editable fields with default values (Updated with your data)
   String name = 'Rugwed Khairnar';
   String userType = 'Event Planner';
   String joinedDate = 'Joined 2024';
@@ -32,14 +29,12 @@ class _ProfilePlannerScreenState extends State<ProfilePlannerScreen> {
   String dateOfBirth = 'July 28, 2005';
   String address = 'Guthe Lawns, Gangapur Road, Nashik';
 
-  // Controllers for editing state
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
   final addressController = TextEditingController();
   final dobController = TextEditingController();
 
-  // --- Image Picker Function ---
   Future<void> _pickImage() async {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
@@ -47,16 +42,12 @@ class _ProfilePlannerScreenState extends State<ProfilePlannerScreen> {
     }
   }
 
-  // --- Start Editing (Text Fields only) ---
   void _startEditing() {
-    // 1. Set controllers with current values
     nameController.text = name;
     emailController.text = email;
     phoneController.text = phone;
     addressController.text = address;
     dobController.text = dateOfBirth;
-
-    // 2. Set the editing state, switching the UI from static info to TextFields
     setState(() => isEditing = true);
   }
 
@@ -84,9 +75,7 @@ class _ProfilePlannerScreenState extends State<ProfilePlannerScreen> {
     super.dispose();
   }
 
-  // Navigation handler for the AppBar settings icon
   void _navigateToSettings() {
-    // Navigates to the SettingScreen
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const SettingScreen()),
@@ -106,10 +95,9 @@ class _ProfilePlannerScreenState extends State<ProfilePlannerScreen> {
         ),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () => Navigator.pop(context),
         ),
-        // FIXED: Settings icon is now correctly placed in Profile AppBar
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -118,47 +106,22 @@ class _ProfilePlannerScreenState extends State<ProfilePlannerScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        // FIXED: Using symmetric padding and ensuring sufficient bottom space (72.0)
         padding: const EdgeInsets.symmetric(
           horizontal: 16.0,
         ).copyWith(bottom: 72.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Profile Header Section ---
             buildProfileHeader(theme, primaryColor),
             const SizedBox(height: 30),
-
-            // --- Personal Info Section ---
             buildSectionTitle('Personal Info'),
             isEditing ? buildEditableFields() : buildStaticInfo(),
             const SizedBox(height: 20),
-
-            // --- Past Events Section (Horizontal Scroll) ---
             buildSectionTitle('Past Events'),
             buildPastEventsSection(context),
             const SizedBox(height: 20),
-
-            // --- Account Settings (Simplified) ---
-            buildSectionTitle('Account Settings'),
-            ListTile(
-              leading: Icon(Icons.security, color: primaryColor),
-              title: const Text('Privacy & Security'),
-              onTap: () {},
-              trailing: const Icon(Icons.chevron_right),
-            ),
-            ListTile(
-              leading: Icon(Icons.logout, color: theme.colorScheme.error),
-              title: const Text('Logout'),
-              onTap: () {},
-              trailing: const Icon(Icons.chevron_right),
-            ),
-            const SizedBox(height: 30),
-
-            // --- Save Button (Conditional) ---
             if (isEditing)
               Padding(
-                // Removed bottom padding from this inner Padding widget
                 padding: const EdgeInsets.only(top: 0),
                 child: FilledButton(
                   onPressed: _saveChanges,
@@ -181,15 +144,12 @@ class _ProfilePlannerScreenState extends State<ProfilePlannerScreen> {
     );
   }
 
-  // --- Profile Header Widget (ASSET UPDATED) ---
   Widget buildProfileHeader(ThemeData theme, Color primaryColor) {
-    // Determine the tap action: _pickImage() if editing, null otherwise.
     final Function()? onAvatarTap = isEditing ? _pickImage : null;
 
     return Center(
       child: Column(
         children: [
-          // Wrapped the avatar in GestureDetector to enable tap-to-change image
           GestureDetector(
             onTap: onAvatarTap,
             child: Container(
@@ -202,11 +162,9 @@ class _ProfilePlannerScreenState extends State<ProfilePlannerScreen> {
                   fit: BoxFit.cover,
                   image: _selectedImage != null
                       ? FileImage(_selectedImage!) as ImageProvider
-                      // Using AssetImage for default avatar
                       : const AssetImage(_defaultAvatarPath),
                 ),
               ),
-              // Conditional visual feedback for editing mode
               child: isEditing
                   ? Center(
                       child: Container(
@@ -238,7 +196,6 @@ class _ProfilePlannerScreenState extends State<ProfilePlannerScreen> {
             style: const TextStyle(color: Colors.grey, fontSize: 13),
           ),
           const SizedBox(height: 16),
-          // Only show the Edit Profile button if not currently editing
           if (!isEditing)
             FilledButton(
               onPressed: _startEditing,
@@ -271,7 +228,6 @@ class _ProfilePlannerScreenState extends State<ProfilePlannerScreen> {
         buildInfoCardTile(Icons.email, 'Email', email),
         buildInfoCardTile(Icons.account_circle, 'User Type', userType),
         buildInfoCardTile(Icons.cake, 'Date of Birth', dateOfBirth),
-        // Used home_mini icon for Address
         buildInfoCardTile(Icons.home_mini, 'Address', address),
       ],
     );
@@ -333,7 +289,6 @@ class _ProfilePlannerScreenState extends State<ProfilePlannerScreen> {
         textField(Icons.email, 'Email', emailController),
         textField(Icons.phone, 'Phone', phoneController),
         textField(Icons.cake, 'Date of Birth', dobController),
-        // Used home_mini icon for Address
         textField(Icons.home_mini, 'Address', addressController),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -365,7 +320,6 @@ class _ProfilePlannerScreenState extends State<ProfilePlannerScreen> {
     );
   }
 
-  // --- Past Events Section (FIXED OVERFLOW) ---
   Widget buildPastEventsSection(BuildContext context) {
     final events = [
       {'title': 'Elegant Wedding', 'date': '12/12/2023', 'image': _pastEvent1},
@@ -375,8 +329,6 @@ class _ProfilePlannerScreenState extends State<ProfilePlannerScreen> {
     ];
 
     return SizedBox(
-      // Reduced height slightly to 190 to guarantee fit,
-      // as previous height was causing the overflow.
       height: 190,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
@@ -389,18 +341,16 @@ class _ProfilePlannerScreenState extends State<ProfilePlannerScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Flexible Image: takes remaining vertical space after text/spacing is accounted for
                 Flexible(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: AspectRatio(
                       aspectRatio: 3 / 4,
-                      // FIXED: Use Image.asset
                       child: Image.asset(e['image']!, fit: BoxFit.cover),
                     ),
                   ),
                 ),
-                const SizedBox(height: 4), // Reduced spacing slightly
+                const SizedBox(height: 4),
                 Text(
                   e['title']!,
                   maxLines: 1,

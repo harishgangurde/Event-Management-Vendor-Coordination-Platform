@@ -43,7 +43,6 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
   }
 
   Future<bool> _onWillPop() async {
-    // Exit the app when back button is pressed
     await SystemNavigator.pop();
     return false;
   }
@@ -51,11 +50,14 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
         appBar: AppBar(
-          automaticallyImplyLeading: false, // Removes the back button
+          automaticallyImplyLeading: false,
+          backgroundColor: theme.colorScheme.primary,
           title: const Row(
             children: [
               CircleAvatar(
@@ -74,34 +76,31 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
               Text('Eventtoria', style: TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
-          actions: const [],
         ),
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            buildSectionTitle('Upcoming Events'),
+            buildSectionTitle('Upcoming Events', theme),
             const SizedBox(height: 8),
-            buildUpcomingEvents(),
+            buildUpcomingEvents(theme),
             const SizedBox(height: 24),
-            buildSectionTitle('Quick Stats'),
+            buildSectionTitle('Quick Stats', theme),
             const SizedBox(height: 8),
             buildQuickStats(theme),
             const SizedBox(height: 24),
-            buildSectionTitle('AI Suggestions'),
+            buildSectionTitle('AI Suggestions', theme),
             const SizedBox(height: 8),
-            buildAISuggestions(context),
+            buildAISuggestions(theme),
           ],
         ),
         bottomNavigationBar: NavigationBar(
+          backgroundColor: theme.scaffoldBackgroundColor,
           destinations: const [
             NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
             NavigationDestination(icon: Icon(Icons.event), label: 'Events'),
             NavigationDestination(icon: Icon(Icons.chat), label: 'Chat'),
             NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
-            NavigationDestination(
-              icon: Icon(Icons.notifications),
-              label: 'Notify',
-            ),
+            NavigationDestination(icon: Icon(Icons.notifications), label: 'Notify'),
           ],
           selectedIndex: selectedIndex,
           onDestinationSelected: onDestinationSelected,
@@ -110,14 +109,14 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
     );
   }
 
-  Widget buildSectionTitle(String title) {
+  Widget buildSectionTitle(String title, ThemeData theme) {
     return Text(
       title,
-      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
     );
   }
 
-  Widget buildUpcomingEvents() {
+  Widget buildUpcomingEvents(ThemeData theme) {
     final events = [
       {
         'title': 'Grand Wedding Reception',
@@ -163,11 +162,11 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
                   e['title']!,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 Text(
                   e['date']!,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onBackground.withOpacity(0.6)),
                 ),
               ],
             ),
@@ -201,16 +200,15 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
             children: [
               Text(
                 'Pending Tasks',
-                style: TextStyle(
+                style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.primary,
                   fontWeight: FontWeight.w600,
-                  fontSize: 14,
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 '15',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -231,23 +229,22 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
         children: [
           Text(
             label,
-            style: TextStyle(
+            style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.primary,
               fontWeight: FontWeight.w600,
-              fontSize: 14,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
         ],
       ),
     );
   }
 
-  Widget buildAISuggestions(BuildContext context) {
+  Widget buildAISuggestions(ThemeData theme) {
     final suggestions = [
       {
         'title': 'Top Vendor Picks',
@@ -266,91 +263,71 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
     ];
 
     return Column(
-      children: suggestions
-          .map(
-            (s) => Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF313131)
-                  : Theme.of(context).cardColor,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        s['image']!,
-                        height: 80,
-                        width: 80,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stack) => Container(
-                          height: 80,
-                          width: 80,
-                          color: Colors.grey.shade300,
-                          child: const Icon(Icons.broken_image),
+      children: suggestions.map((s) {
+        return Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          color: theme.cardColor,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    s['image']!,
+                    height: 80,
+                    width: 80,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stack) => Container(
+                      height: 80,
+                      width: 80,
+                      color: Colors.grey.shade300,
+                      child: const Icon(Icons.broken_image),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        s['title']!,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            s['title']!,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color:
-                                  Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.white
-                                  : Colors.black,
-                            ),
-                          ),
-                          Text(
-                            s['desc']!,
-                            style: TextStyle(
-                              color:
-                                  Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.grey.shade400
-                                  : Colors.grey.shade600,
-                              fontSize: 13,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          FilledButton.tonal(
-                            onPressed: () {},
-                            style: FilledButton.styleFrom(
-                              backgroundColor: Theme.of(
-                                context,
-                              ).colorScheme.primary,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                            ),
-                            child: const Text(
-                              'View All',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ],
+                      Text(
+                        s['desc']!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onBackground.withOpacity(0.6),
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      FilledButton.tonal(
+                        onPressed: () {},
+                        style: FilledButton.styleFrom(
+                          backgroundColor: theme.colorScheme.primary,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        child: Text(
+                          s['btn']!,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          )
-          .toList(),
+          ),
+        );
+      }).toList(),
     );
   }
 }

@@ -1,6 +1,6 @@
 import 'package:eventtoria/views/admin/dashboard_admin.dart';
 import 'package:eventtoria/views/planner/dashboard_planner.dart';
-import 'package:eventtoria/views/vendor/dashboard_vendor.dart';
+import 'package:eventtoria/views/vendor/vendor_dashboard.dart';
 import 'package:eventtoria/views/auth/login_screen.dart';
 import 'package:eventtoria/widgets/role_selector.dart';
 import 'package:flutter/material.dart';
@@ -30,13 +30,12 @@ class _SignupScreenState extends State<SignupScreen>
   final List<String> roles = ['Planner', 'Vendor', 'Admin'];
   bool _loading = false;
 
-  // Password visibility toggles
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
   final Color primaryColor = const Color(0xFF7F06F9);
   final Color backgroundDark = const Color(0xFF161022);
-  final Color cardDark = const Color(0xFF1f1a30);
+  final Color fieldDark = const Color(0xFF241A36);
 
   late AnimationController _formController;
   late Animation<double> _formFade;
@@ -100,7 +99,7 @@ class _SignupScreenState extends State<SignupScreen>
               'createdAt': FieldValue.serverTimestamp(),
             });
 
-        // Navigate to dashboard
+        // Navigate directly to dashboard
         Widget destination;
         if (_role == 'Planner') {
           destination = const DashboardPlanner();
@@ -114,9 +113,8 @@ class _SignupScreenState extends State<SignupScreen>
           context,
           PageRouteBuilder(
             pageBuilder: (_, __, ___) => destination,
-            transitionsBuilder: (_, animation, __, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            transitionsBuilder: (_, animation, __, child) =>
+                FadeTransition(opacity: animation, child: child),
           ),
         );
 
@@ -139,9 +137,8 @@ class _SignupScreenState extends State<SignupScreen>
         context,
         PageRouteBuilder(
           pageBuilder: (_, __, ___) => const LoginScreen(),
-          transitionsBuilder: (_, animation, __, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
+          transitionsBuilder: (_, animation, __, child) =>
+              FadeTransition(opacity: animation, child: child),
         ),
       );
     });
@@ -156,49 +153,58 @@ class _SignupScreenState extends State<SignupScreen>
     bool isConfirmPassword = false,
     String? Function(String?)? validator,
   }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: obscure
-          ? (isConfirmPassword ? _obscureConfirmPassword : _obscurePassword)
-          : false,
-      keyboardType: keyboard,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: Colors.grey),
-        filled: true,
-        fillColor: cardDark,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: primaryColor),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: TextFormField(
+        controller: controller,
+        obscureText: obscure
+            ? (isConfirmPassword ? _obscureConfirmPassword : _obscurePassword)
+            : false,
+        keyboardType: keyboard,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Colors.grey),
+          filled: true,
+          fillColor: fieldDark,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: primaryColor),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 18,
+            horizontal: 16,
+          ),
+          suffixIcon: obscure
+              ? IconButton(
+                  icon: Icon(
+                    isConfirmPassword
+                        ? (_obscureConfirmPassword
+                              ? Icons.visibility_off
+                              : Icons.visibility)
+                        : (_obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility),
+                    color: Colors.grey.shade400,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      if (isConfirmPassword) {
+                        _obscureConfirmPassword = !_obscureConfirmPassword;
+                      } else {
+                        _obscurePassword = !_obscurePassword;
+                      }
+                    });
+                  },
+                )
+              : null,
         ),
-        contentPadding: const EdgeInsets.all(16),
-        suffixIcon: obscure
-            ? IconButton(
-                icon: Icon(
-                  isConfirmPassword
-                      ? (_obscureConfirmPassword
-                            ? Icons.visibility_off
-                            : Icons.visibility)
-                      : (_obscurePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility),
-                  color: Colors.grey.shade400,
-                ),
-                onPressed: () {
-                  setState(() {
-                    if (isConfirmPassword) {
-                      _obscureConfirmPassword = !_obscureConfirmPassword;
-                    } else {
-                      _obscurePassword = !_obscurePassword;
-                    }
-                  });
-                },
-              )
-            : null,
+        validator: validator ?? (val) => val!.isEmpty ? errorText : null,
       ),
-      validator: validator ?? (val) => val!.isEmpty ? errorText : null,
     );
   }
 
@@ -210,7 +216,7 @@ class _SignupScreenState extends State<SignupScreen>
         backgroundColor: backgroundDark,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
           onPressed: _navigateToLogin,
         ),
         title: const Text('Sign Up', style: TextStyle(color: Colors.white)),
@@ -232,35 +238,31 @@ class _SignupScreenState extends State<SignupScreen>
                       const Text(
                         "Eventtoria",
                         style: TextStyle(
-                          fontSize: 36,
+                          fontSize: 34,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 28),
                       _customTextField("Name", nameController, "Enter name"),
-                      const SizedBox(height: 12),
                       _customTextField(
                         "Email",
                         emailController,
                         "Enter email",
                         keyboard: TextInputType.emailAddress,
                       ),
-                      const SizedBox(height: 12),
                       _customTextField(
                         "Phone",
                         phoneController,
                         "Enter phone",
                         keyboard: TextInputType.phone,
                       ),
-                      const SizedBox(height: 12),
                       _customTextField(
                         "Password",
                         passwordController,
                         "Enter password",
                         obscure: true,
                       ),
-                      const SizedBox(height: 12),
                       _customTextField(
                         "Confirm Password",
                         confirmPasswordController,
@@ -269,18 +271,19 @@ class _SignupScreenState extends State<SignupScreen>
                         isConfirmPassword: true,
                         validator: (val) {
                           if (val!.isEmpty) return "Enter password again";
-                          if (val != passwordController.text)
+                          if (val != passwordController.text) {
                             return "Passwords do not match";
+                          }
                           return null;
                         },
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
                       RoleSelector(
                         selectedRole: _role,
                         roles: roles,
                         onRoleSelected: (role) => setState(() => _role = role),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -289,7 +292,7 @@ class _SignupScreenState extends State<SignupScreen>
                             backgroundColor: primaryColor,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(14),
                             ),
                           ),
                           child: _loading

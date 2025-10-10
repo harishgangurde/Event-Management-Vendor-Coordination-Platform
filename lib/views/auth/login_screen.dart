@@ -1,7 +1,7 @@
 import 'package:eventtoria/views/admin/dashboard_admin.dart';
 import 'package:eventtoria/views/landing/landing_screen.dart';
 import 'package:eventtoria/views/planner/dashboard_planner.dart';
-import 'package:eventtoria/views/vendor/dashboard_vendor.dart';
+import 'package:eventtoria/views/vendor/vendor_dashboard.dart';
 import 'package:eventtoria/views/auth/signup_screen.dart';
 import 'package:eventtoria/widgets/role_selector.dart';
 import 'package:flutter/material.dart';
@@ -196,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen>
         backgroundColor: backgroundDark,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
           onPressed: _navigateToLanding,
         ),
         title: const Text('Login', style: TextStyle(color: Colors.white)),

@@ -29,10 +29,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     );
 
     _formFade = CurvedAnimation(parent: _formController, curve: Curves.easeIn);
-    _formSlide =
-        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-      CurvedAnimation(parent: _formController, curve: Curves.easeOut),
-    );
+    _formSlide = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _formController, curve: Curves.easeOut));
 
     _formController.forward();
   }
@@ -64,9 +64,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       if (e.code == 'user-not-found') {
         message = "No user found with this email.";
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       setState(() => _loading = false);
     }
@@ -116,22 +116,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                const SizedBox(height: 40),
                 const Text(
-                  "Forgot Password?",
+                  "Reset Password",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 28,
-                    color: Colors.deepPurple,
+                    color: Colors.white,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  "Enter your email and we'll send you a link to reset your password.",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey.shade300,
-                  ),
+                  "Enter your registered email address to receive a reset link.",
+                  style: TextStyle(fontSize: 16, color: Colors.grey.shade300),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
@@ -141,20 +139,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                     controller: _emailController,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      hintText: "Email address",
+                      hintText: "Email",
                       hintStyle: const TextStyle(color: Colors.grey),
-                      prefixIcon:
-                          const Icon(Icons.email_outlined, color: Colors.white70),
+                      prefixIcon: const Icon(
+                        Icons.email_outlined,
+                        color: Colors.white70,
+                      ),
                       filled: true,
                       fillColor: cardDark,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
                       ),
                     ),
-                    validator: (value) =>
-                        value != null && value.contains('@')
-                            ? null
-                            : "Enter a valid email",
+                    validator: (value) => value != null && value.contains('@')
+                        ? null
+                        : "Enter a valid email",
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -167,17 +167,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryColor,
                             padding: const EdgeInsets.symmetric(
-                                vertical: 16, horizontal: 20),
+                              vertical: 16,
+                              horizontal: 20,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                           child: const Text(
-                            "Reset Password",
+                            "Send Reset Link",
                             style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: Colors.white),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
@@ -185,13 +188,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                 TextButton(
                   onPressed: _navigateBackToLogin,
                   child: const Text(
-                    "Back to Log In",
+                    "Back to Login",
                     style: TextStyle(
                       color: Colors.deepPurple,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),
