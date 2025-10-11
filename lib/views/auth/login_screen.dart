@@ -25,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   final _auth = FirebaseAuth.instance;
   bool _loading = false;
-  bool _obscurePassword = true; // <-- Password visibility toggle
+  bool _obscurePassword = true;
 
   final Color backgroundDark = const Color(0xFF161022);
   final Color cardDark = const Color(0xFF1f1a30);
@@ -38,18 +38,15 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void initState() {
     super.initState();
-
     _formController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-
     _formFade = CurvedAnimation(parent: _formController, curve: Curves.easeIn);
     _formSlide = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _formController, curve: Curves.easeOut));
-
     _formController.forward();
   }
 
@@ -77,58 +74,71 @@ class _LoginScreenState extends State<LoginScreen>
     setState(() => _loading = true);
 
     try {
+      // 1️⃣ Login with Firebase Auth
       UserCredential userCred = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      DocumentReference userRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(userCred.user!.uid);
+      // 2️⃣ Admin role check
+      if (selectedRole == 'Admin') {
+        var adminQuery = await FirebaseFirestore.instance
+            .collection('admins')
+            .where('email', isEqualTo: email)
+            .get();
 
-      DocumentSnapshot userDoc = await userRef.get();
+        if (adminQuery.docs.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("This email is not registered as admin"),
+            ),
+          );
+          setState(() => _loading = false);
+          return;
+        }
 
-      if (!userDoc.exists) {
-        await userRef.set({
-          'name': '',
-          'email': email,
-          'role': selectedRole,
-          'uid': userCred.user!.uid,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      }
-
-      String role = (await userRef.get()).get('role');
-
-      if (role != selectedRole) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Selected role does not match your account"),
-          ),
+        // Navigate to Admin dashboard
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminDashboard()),
         );
-        setState(() => _loading = false);
-        return;
-      }
-
-      // Navigate based on role
-      Widget destination;
-      if (role == 'Planner') {
-        destination = const DashboardPlanner();
-      } else if (role == 'Vendor') {
-        destination = const VendorDashboard();
       } else {
-        destination = const AdminDashboard();
-      }
+        // Planner / Vendor check
+        DocumentReference userRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCred.user!.uid);
 
-      Navigator.pushReplacement(
-        context,
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => destination,
-          transitionsBuilder: (_, animation, __, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-        ),
-      );
+        DocumentSnapshot userDoc = await userRef.get();
+        if (!userDoc.exists) {
+          await userRef.set({
+            'name': '',
+            'email': email,
+            'role': selectedRole,
+            'uid': userCred.user!.uid,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        }
+
+        String role = (await userRef.get()).get('role');
+        if (role != selectedRole) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Selected role does not match your account"),
+            ),
+          );
+          setState(() => _loading = false);
+          return;
+        }
+
+        Widget destination = role == 'Planner'
+            ? const DashboardPlanner()
+            : const VendorDashboard();
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => destination),
+        );
+      }
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(
         context,
@@ -141,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen>
   Widget _customTextField(
     String hint,
     TextEditingController controller, {
-    bool isPassword = false, // <-- use this for password toggle
+    bool isPassword = false,
   }) {
     return TextField(
       controller: controller,
@@ -221,7 +231,6 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   ),
                   const SizedBox(height: 32),
-
                   _customTextField("Email", emailController),
                   const SizedBox(height: 16),
                   _customTextField(
@@ -230,7 +239,6 @@ class _LoginScreenState extends State<LoginScreen>
                     isPassword: true,
                   ),
                   const SizedBox(height: 8),
-
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
@@ -256,7 +264,6 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   ),
                   const SizedBox(height: 16),
-
                   RoleSelector(
                     selectedRole: selectedRole,
                     roles: roles,
@@ -264,7 +271,6 @@ class _LoginScreenState extends State<LoginScreen>
                         setState(() => selectedRole = role),
                   ),
                   const SizedBox(height: 32),
-
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(

@@ -1,9 +1,10 @@
-import 'package:eventtoria/views/planner/event_details.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'profile_planner.dart';
 import 'notification_screen.dart';
 import 'chat_screen.dart';
-import 'package:flutter/services.dart';
+import 'event_details.dart';
+import 'create_event.dart'; // <-- Import CreateEventPage
 
 class DashboardPlanner extends StatefulWidget {
   const DashboardPlanner({super.key});
@@ -50,7 +51,6 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return WillPopScope(
       onWillPop: _onWillPop,
@@ -58,23 +58,9 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
         appBar: AppBar(
           automaticallyImplyLeading: false,
           backgroundColor: theme.colorScheme.primary,
-          title: const Row(
-            children: [
-              CircleAvatar(
-                radius: 14,
-                backgroundColor: Color(0xFF7F06F9),
-                child: Text(
-                  'AI',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              SizedBox(width: 8),
-              Text('Eventtoria', style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
+          title: const Text(
+            'Eventtoria',
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
         body: ListView(
@@ -93,6 +79,37 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
             buildAISuggestions(theme),
           ],
         ),
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Create Event FAB
+              FloatingActionButton.extended(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CreateEventPage()),
+                  );
+                },
+                label: const Text('Create Event'),
+                icon: const Icon(Icons.event_note),
+                backgroundColor: theme.colorScheme.primary,
+              ),
+              const SizedBox(height: 12),
+              // AI FAB with bolt icon
+              FloatingActionButton(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('AI Suggestions clicked!')),
+                  );
+                },
+                backgroundColor: theme.colorScheme.secondary,
+                child: const Icon(Icons.bolt, size: 28),
+              ),
+            ],
+          ),
+        ),
         bottomNavigationBar: NavigationBar(
           backgroundColor: theme.scaffoldBackgroundColor,
           destinations: const [
@@ -100,7 +117,10 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
             NavigationDestination(icon: Icon(Icons.event), label: 'Events'),
             NavigationDestination(icon: Icon(Icons.chat), label: 'Chat'),
             NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
-            NavigationDestination(icon: Icon(Icons.notifications), label: 'Notify'),
+            NavigationDestination(
+              icon: Icon(Icons.notifications),
+              label: 'Notify',
+            ),
           ],
           selectedIndex: selectedIndex,
           onDestinationSelected: onDestinationSelected,
@@ -162,11 +182,15 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
                   e['title']!,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
                   e['date']!,
-                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onBackground.withOpacity(0.6)),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onBackground.withOpacity(0.6),
+                  ),
                 ),
               ],
             ),
@@ -208,7 +232,9 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
               const SizedBox(height: 4),
               Text(
                 '15',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -237,7 +263,9 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
           const SizedBox(height: 4),
           Text(
             value,
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -302,7 +330,9 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
                       Text(
                         s['desc']!,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onBackground.withOpacity(0.6),
+                          color: theme.colorScheme.onBackground.withOpacity(
+                            0.6,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -310,7 +340,10 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
                         onPressed: () {},
                         style: FilledButton.styleFrom(
                           backgroundColor: theme.colorScheme.primary,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),

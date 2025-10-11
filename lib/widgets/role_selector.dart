@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class RoleSelector extends StatefulWidget {
   final String? selectedRole;
-  final List<String> roles;
+  final List<String> roles; // Only roles allowed are passed here
   final ValueChanged<String> onRoleSelected;
 
   const RoleSelector({
@@ -36,6 +36,8 @@ class _RoleSelectorState extends State<RoleSelector> {
             children: widget.roles.asMap().entries.map((entry) {
               int index = entry.key;
               String role = entry.value;
+
+              // Admin filtering can be done by parent, no need for internal check
               return AnimatedRoleTile(
                 role: role,
                 delay: Duration(milliseconds: 100 * index),

@@ -2,6 +2,7 @@ import 'package:eventtoria/views/planner/create_event.dart';
 import 'package:eventtoria/views/planner/eventoria_ai_screen.dart';
 import 'package:flutter/material.dart';
 import 'payment_screen.dart';
+import 'vendor_screen.dart'; // <-- Your vendor browsing screen
 
 // Define the colors used for consistency
 const Color kPrimaryColor = Color(0xFF7F06F9);
@@ -177,17 +178,6 @@ class EventDetailsPage extends StatelessWidget {
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           centerTitle: true,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.edit, color: Colors.white),
-              onPressed: () {},
-            ),
-            IconButton(
-              icon: const Icon(Icons.cancel, color: kAccentRed),
-              onPressed: () {},
-            ),
-            const SizedBox(width: 8),
-          ],
           flexibleSpace: ClipRect(
             child: Container(
               color: kBackgroundDark.withOpacity(0.5),
@@ -207,17 +197,16 @@ class EventDetailsPage extends StatelessWidget {
               ),
             ),
             SingleChildScrollView(
-              // Increased bottom padding to accommodate TWO footer buttons
               padding: const EdgeInsets.only(
                 top: kToolbarHeight + 40,
-                bottom: 180,
+                bottom: 220, // increased to fit footer
                 left: 16,
                 right: 16,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- 1. Event Summary Card ---
+                  // 1️⃣ Event Summary Card
                   _buildDetailCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,7 +259,7 @@ class EventDetailsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // --- 2. AI Suggestions Card ---
+                  // 2️⃣ AI Suggestions Card
                   _buildDetailCard(
                     child: Column(
                       children: [
@@ -309,7 +298,7 @@ class EventDetailsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // --- 3. Booked Vendors Card ---
+                  // 3️⃣ Booked Vendors Card
                   _buildDetailCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -327,7 +316,6 @@ class EventDetailsPage extends StatelessWidget {
                             ),
                             TextButton(
                               onPressed: () {
-                                // Navigate to Create Event Page (used here for "Add New")
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -368,8 +356,8 @@ class EventDetailsPage extends StatelessWidget {
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
+                          children: const [
+                            Text(
                               'Total Spent',
                               style: TextStyle(
                                 fontSize: 16,
@@ -377,7 +365,7 @@ class EventDetailsPage extends StatelessWidget {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            const Text(
+                            Text(
                               '₹275,000',
                               style: TextStyle(
                                 fontSize: 20,
@@ -394,7 +382,7 @@ class EventDetailsPage extends StatelessWidget {
               ),
             ),
 
-            // --- Fixed Footer Buttons ---
+            // 4️⃣ Footer Buttons
             Positioned(
               bottom: 0,
               left: 0,
@@ -402,7 +390,7 @@ class EventDetailsPage extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(16.0),
                 decoration: BoxDecoration(
-                  color: kBackgroundDark, // Solid background for footer
+                  color: kBackgroundDark,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.4),
@@ -413,8 +401,42 @@ class EventDetailsPage extends StatelessWidget {
                   ],
                 ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // NEW: Make Payment Button
+                    // Send Booking Request Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => VendorScreen(
+                                eventName: "Varad's Birthday Bash",
+                              ),
+                            ),
+                          );
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: kPrimaryColor,
+                          padding: const EdgeInsets.symmetric(vertical: 16.0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Send Booking Request',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Make Payment Button
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
@@ -427,8 +449,7 @@ class EventDetailsPage extends StatelessWidget {
                           );
                         },
                         style: FilledButton.styleFrom(
-                          backgroundColor:
-                              kAccentRed, // Using red accent color for urgency
+                          backgroundColor: kAccentRed,
                           padding: const EdgeInsets.symmetric(vertical: 16.0),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -445,7 +466,8 @@ class EventDetailsPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    // Original: Ask Eventtoria AI Button
+
+                    // Ask Eventtoria AI Button
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(

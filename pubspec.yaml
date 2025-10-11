@@ -33,7 +33,8 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/
+    - assets/images/logo.png
+    - assets/icons/AI_logo.jpg
 
 # flutter_launcher_icons configuration should be at the top level, not under flutter
 flutter_icons:

@@ -1,4 +1,3 @@
-import 'package:eventtoria/views/admin/dashboard_admin.dart';
 import 'package:eventtoria/views/planner/dashboard_planner.dart';
 import 'package:eventtoria/views/vendor/vendor_dashboard.dart';
 import 'package:eventtoria/views/auth/login_screen.dart';
@@ -27,7 +26,7 @@ class _SignupScreenState extends State<SignupScreen>
       TextEditingController();
 
   String? _role;
-  final List<String> roles = ['Planner', 'Vendor', 'Admin'];
+  final List<String> roles = ['Planner', 'Vendor']; // Admin removed
   bool _loading = false;
 
   bool _obscurePassword = true;
@@ -73,9 +72,8 @@ class _SignupScreenState extends State<SignupScreen>
   void _signUp() async {
     if (_formKey.currentState!.validate()) {
       if (_role == null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Please select a role")));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Please select a role")));
         return;
       }
 
@@ -91,23 +89,17 @@ class _SignupScreenState extends State<SignupScreen>
             .collection('users')
             .doc(userCred.user!.uid)
             .set({
-              'name': nameController.text.trim(),
-              'email': emailController.text.trim(),
-              'phone': phoneController.text.trim(),
-              'role': _role,
-              'uid': userCred.user!.uid,
-              'createdAt': FieldValue.serverTimestamp(),
-            });
+          'name': nameController.text.trim(),
+          'email': emailController.text.trim(),
+          'phone': phoneController.text.trim(),
+          'role': _role,
+          'uid': userCred.user!.uid,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
 
         // Navigate directly to dashboard
-        Widget destination;
-        if (_role == 'Planner') {
-          destination = const DashboardPlanner();
-        } else if (_role == 'Vendor') {
-          destination = const VendorDashboard();
-        } else {
-          destination = const AdminDashboard();
-        }
+        Widget destination =
+            _role == 'Planner' ? const DashboardPlanner() : const VendorDashboard();
 
         Navigator.pushReplacement(
           context,
@@ -118,13 +110,11 @@ class _SignupScreenState extends State<SignupScreen>
           ),
         );
 
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Sign Up Successful!")));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text("Sign Up Successful!")));
       } on FirebaseAuthException catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.message ?? "Sign Up Failed")));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message ?? "Sign Up Failed")));
       } finally {
         setState(() => _loading = false);
       }
@@ -184,11 +174,11 @@ class _SignupScreenState extends State<SignupScreen>
                   icon: Icon(
                     isConfirmPassword
                         ? (_obscureConfirmPassword
-                              ? Icons.visibility_off
-                              : Icons.visibility)
+                            ? Icons.visibility_off
+                            : Icons.visibility)
                         : (_obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility),
+                            ? Icons.visibility_off
+                            : Icons.visibility),
                     color: Colors.grey.shade400,
                   ),
                   onPressed: () {
@@ -280,7 +270,7 @@ class _SignupScreenState extends State<SignupScreen>
                       const SizedBox(height: 8),
                       RoleSelector(
                         selectedRole: _role,
-                        roles: roles,
+                        roles: roles, // Only Planner & Vendor
                         onRoleSelected: (role) => setState(() => _role = role),
                       ),
                       const SizedBox(height: 20),
