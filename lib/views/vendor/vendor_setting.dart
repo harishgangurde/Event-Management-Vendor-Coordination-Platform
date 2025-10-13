@@ -2,7 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:eventtoria/views/auth/login_screen.dart'; // ⚠️ Update this path if different
+import 'package:shared_preferences/shared_preferences.dart';
+import '../auth/login_screen.dart'; // ⚠️ Update this path if different
 
 class VendorSetting extends StatefulWidget {
   const VendorSetting({super.key});
@@ -130,7 +131,12 @@ class _VendorSettingState extends State<VendorSetting>
       setState(() => _isLoggingOut = true);
       await _controller.forward(); // play animation
 
+      // Sign out from Firebase
       await FirebaseAuth.instance.signOut();
+
+      // Clear SharedPreferences to prevent auto-login
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
 
       // Navigate to Login screen after animation completes
       if (mounted) {
@@ -229,7 +235,7 @@ class _VendorSettingState extends State<VendorSetting>
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD9415D),
+                    backgroundColor: const Color.fromARGB(255, 70, 10, 131),
                     minimumSize: const Size.fromHeight(50),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

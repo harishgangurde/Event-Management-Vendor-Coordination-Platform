@@ -7,6 +7,7 @@ import 'package:eventtoria/widgets/role_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'forgot_pass.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -48,6 +49,11 @@ class _LoginScreenState extends State<LoginScreen>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _formController, curve: Curves.easeOut));
     _formController.forward();
+
+    // Auto-login check after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkLoggedInUser();
+    });
   }
 
   @override
@@ -56,6 +62,29 @@ class _LoginScreenState extends State<LoginScreen>
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
+  }
+
+  // Check if user is already logged in
+  void _checkLoggedInUser() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? uid = prefs.getString('uid');
+    String? role = prefs.getString('role');
+
+    if (uid != null && role != null) {
+      Widget destination = role == 'Admin'
+          ? const AdminDashboard()
+          : role == 'Planner'
+          ? const DashboardPlanner()
+          : const VendorDashboard();
+
+      // Navigate after current frame
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => destination),
+        );
+      }
+    }
   }
 
   void login() async {
@@ -74,13 +103,14 @@ class _LoginScreenState extends State<LoginScreen>
     setState(() => _loading = true);
 
     try {
-      // 1️⃣ Login with Firebase Auth
+      // Firebase login
       UserCredential userCred = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // 2️⃣ Admin role check
+      Widget destination;
+
       if (selectedRole == 'Admin') {
         var adminQuery = await FirebaseFirestore.instance
             .collection('admins')
@@ -97,13 +127,9 @@ class _LoginScreenState extends State<LoginScreen>
           return;
         }
 
-        // Navigate to Admin dashboard
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const AdminDashboard()),
-        );
+        destination = const AdminDashboard();
       } else {
-        // Planner / Vendor check
+        // Planner / Vendor
         DocumentReference userRef = FirebaseFirestore.instance
             .collection('users')
             .doc(userCred.user!.uid);
@@ -130,10 +156,18 @@ class _LoginScreenState extends State<LoginScreen>
           return;
         }
 
-        Widget destination = role == 'Planner'
+        destination = role == 'Planner'
             ? const DashboardPlanner()
             : const VendorDashboard();
+      }
 
+      // Save UID and role in SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('uid', userCred.user!.uid);
+      await prefs.setString('role', selectedRole!);
+
+      // Navigate to the dashboard
+      if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => destination),

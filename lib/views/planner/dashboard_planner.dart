@@ -16,10 +16,6 @@ void _openNotifications(BuildContext context) {
   );
 }
 
-// ===================================================
-// 1. EXTRACTED HOME SCREEN CONTENT: DashboardBody
-// ===================================================
-
 class DashboardBody extends StatelessWidget {
   const DashboardBody({super.key});
 

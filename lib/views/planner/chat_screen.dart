@@ -10,9 +10,7 @@ const Color kCardDarkColor = Color(0xFF1E122D);
 class ChatScreen extends StatelessWidget {
   const ChatScreen({super.key});
 
-  // IMPORTANT: Updated to use local asset paths
-  // Make sure you place images named 'vendor_avatar.png' and 'planner_avatar.png'
-  // inside your 'assets/images/' directory.
+
   static const String vendorAvatar = 'assets/images/atharva.jpg';
   static const String plannerAvatar = 'assets/images/varad.jpg';
 

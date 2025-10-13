@@ -1,6 +1,7 @@
 import 'package:eventtoria/views/auth/login_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AdminSettings extends StatelessWidget {
   const AdminSettings({super.key});
@@ -38,7 +39,14 @@ class AdminSettings extends StatelessWidget {
     );
 
     if (confirm != null && confirm) {
+      // Sign out from Firebase
       await FirebaseAuth.instance.signOut();
+
+      // Clear SharedPreferences to prevent auto-login
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+
+      // Navigate to Login screen
       Navigator.of(context).pushAndRemoveUntil(
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) =>
