@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-class VendorScreen extends StatelessWidget {
+class VendorsScreen extends StatelessWidget {
   final String eventName;
 
-  const VendorScreen({super.key, required this.eventName});
+  const VendorsScreen({super.key, required this.eventName});
 
   // Tailwind-like custom colors
   static const Color primaryColor = Color(0xFF7F06F9);
@@ -14,7 +14,9 @@ class VendorScreen extends StatelessWidget {
     // Example: show a confirmation snackbar
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Booking request sent for "$vendorName" in event "$eventName"'),
+        content: Text(
+          'Booking request sent for "$vendorName" in event "$eventName"',
+        ),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -63,10 +65,15 @@ class VendorScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: isDark ? backgroundDark : backgroundLight,
       appBar: AppBar(
-        backgroundColor: isDark ? backgroundDark.withOpacity(0.8) : backgroundLight.withOpacity(0.8),
+        backgroundColor: isDark
+            ? backgroundDark.withOpacity(0.8)
+            : backgroundLight.withOpacity(0.8),
         elevation: 0,
         centerTitle: true,
-        title: Text('Vendors for "$eventName"', style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Vendors for "$eventName"',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -82,7 +89,9 @@ class VendorScreen extends StatelessWidget {
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 hintText: 'Search vendors',
                 filled: true,
-                fillColor: isDark ? Colors.black.withOpacity(0.2) : Colors.white,
+                fillColor: isDark
+                    ? Colors.black.withOpacity(0.2)
+                    : Colors.white,
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(50),
                   borderSide: const BorderSide(color: primaryColor, width: 2),
@@ -126,15 +135,23 @@ class VendorScreen extends StatelessWidget {
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: 1,
-        backgroundColor: isDark ? backgroundDark.withOpacity(0.8) : backgroundLight.withOpacity(0.8),
+        backgroundColor: isDark
+            ? backgroundDark.withOpacity(0.8)
+            : backgroundLight.withOpacity(0.8),
         selectedItemColor: primaryColor,
         unselectedItemColor: isDark ? Colors.grey[400] : Colors.grey[600],
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.celebration), label: 'Vendors'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.celebration),
+            label: 'Vendors',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.chat_bubble), label: 'Chat'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-          BottomNavigationBarItem(icon: Icon(Icons.notifications), label: 'Alerts'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications),
+            label: 'Alerts',
+          ),
         ],
       ),
     );
@@ -143,7 +160,7 @@ class VendorScreen extends StatelessWidget {
   Widget filterButton(String label, IconData icon, bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: VendorScreen.primaryColor.withOpacity(isDark ? 0.2 : 0.1),
+        color: VendorsScreen.primaryColor.withOpacity(isDark ? 0.2 : 0.1),
         borderRadius: BorderRadius.circular(50),
         boxShadow: [
           BoxShadow(
@@ -155,13 +172,20 @@ class VendorScreen extends StatelessWidget {
       ),
       child: TextButton.icon(
         onPressed: () {},
-        icon: Icon(icon, size: 16, color: VendorScreen.primaryColor),
-        label: Text(label, style: TextStyle(color: VendorScreen.primaryColor, fontSize: 14)),
+        icon: Icon(icon, size: 16, color: VendorsScreen.primaryColor),
+        label: Text(
+          label,
+          style: TextStyle(color: VendorsScreen.primaryColor, fontSize: 14),
+        ),
       ),
     );
   }
 
-  Widget vendorCard(Map<String, dynamic> vendor, bool isDark, BuildContext context) {
+  Widget vendorCard(
+    Map<String, dynamic> vendor,
+    bool isDark,
+    BuildContext context,
+  ) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
@@ -188,26 +212,41 @@ class VendorScreen extends StatelessWidget {
                     children: [
                       Text(
                         vendor['name']!,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                       Text(
                         vendor['type']!,
-                        style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 14,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.star, color: Colors.yellow, size: 16),
+                          const Icon(
+                            Icons.star,
+                            color: Colors.yellow,
+                            size: 16,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             '${vendor['rating']}',
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 4),
-                          Text('(${vendor['reviews']} reviews)',
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                          Text(
+                            '(${vendor['reviews']} reviews)',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                            ),
+                          ),
                         ],
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -221,25 +260,30 @@ class VendorScreen extends StatelessWidget {
                     onPressed: () {},
                     child: const Text('View Profile'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: VendorScreen.primaryColor,
-                      side: const BorderSide(color: VendorScreen.primaryColor),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+                      foregroundColor: VendorsScreen.primaryColor,
+                      side: const BorderSide(color: VendorsScreen.primaryColor),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(50),
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => _sendBookingRequest(context, vendor['name']!),
+                    onPressed: () =>
+                        _sendBookingRequest(context, vendor['name']!),
                     child: const Text('Book Now'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: VendorScreen.primaryColor,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+                      backgroundColor: VendorsScreen.primaryColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(50),
+                      ),
                     ),
                   ),
-                )
+                ),
               ],
-            )
+            ),
           ],
         ),
       ),

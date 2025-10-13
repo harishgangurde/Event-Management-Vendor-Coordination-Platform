@@ -22,6 +22,8 @@ dependencies:
   dotted_border: ^2.1.0
   lucide_icons_flutter: ^3.1.2
   shared_preferences: ^2.5.3
+  google_generative_ai: ^0.4.7
+  flutter_markdown: ^0.7.7+1
 
 
 dev_dependencies:
@@ -32,11 +34,16 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  # --- MODIFIED ASSETS SECTION ---
   assets:
-    - assets/images/logo.png
+    # This line now includes ALL files inside the assets/images/ directory
+    - assets/images/ 
+    # The separate icon file still needs to be listed
     - assets/icons/AI_logo.jpg
+  # -------------------------------
 
-# flutter_launcher_icons configuration should be at the top level, not under flutter
+
+# flutter_launcher_icons configuration
 flutter_icons:
   android: true
   ios: true

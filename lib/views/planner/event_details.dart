@@ -2,7 +2,12 @@ import 'package:eventtoria/views/planner/create_event.dart';
 import 'package:eventtoria/views/planner/eventoria_ai_screen.dart';
 import 'package:flutter/material.dart';
 import 'payment_screen.dart';
-import 'vendor_screen.dart'; // <-- Your vendor browsing screen
+import 'vendor_screen.dart';
+
+// *** ASSUMPTION: Replace this with the actual import for your dashboard page ***
+// import 'package:eventtoria/views/planner/dashboard_planner.dart';
+// class DashboardPlannerPage extends StatelessWidget { ... }
+// ****************************************************************************
 
 // Define the colors used for consistency
 const Color kPrimaryColor = Color(0xFF7F06F9);
@@ -10,6 +15,17 @@ const Color kCardDarkColor = Color(0xFF1E122D);
 const Color kAccentPurple = Color(0xFFA564E9);
 const Color kAccentRed = Color(0xFFA564E9);
 const Color kBackgroundDark = Color(0xFF100819);
+
+// NOTE: I will use CreateEventPage as a temporary stand-in for DashboardPlannerPage
+// You must replace CreateEventPage() with your actual Dashboard class name.
+class DashboardPlannerPage extends StatelessWidget {
+  const DashboardPlannerPage({super.key});
+  @override
+  Widget build(BuildContext context) {
+    // This is a dummy page for the fix. Replace it with your actual Dashboard!
+    return const CreateEventPage();
+  }
+}
 
 class EventDetailsPage extends StatelessWidget {
   const EventDetailsPage({super.key});
@@ -171,7 +187,19 @@ class EventDetailsPage extends StatelessWidget {
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              // *** THE CRITICAL CHANGE IS HERE ***
+              // Use pushAndRemoveUntil to clear the stack and ensure the
+              // DashboardPlannerPage is the new root.
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  // ⚠️ REPLACE DashboardPlannerPage() with your ACTUAL dashboard widget
+                  builder: (context) => const DashboardPlannerPage(),
+                ),
+                (route) => false, // This ensures the Login page is removed
+              );
+            },
           ),
           title: const Text(
             'Event Details',
@@ -199,7 +227,7 @@ class EventDetailsPage extends StatelessWidget {
             SingleChildScrollView(
               padding: const EdgeInsets.only(
                 top: kToolbarHeight + 40,
-                bottom: 220, // increased to fit footer
+                bottom: 120,
                 left: 16,
                 right: 16,
               ),
@@ -275,7 +303,15 @@ class EventDetailsPage extends StatelessWidget {
                               ),
                             ),
                             TextButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const EventtoriaAIScreen(),
+                                  ),
+                                );
+                              },
                               child: const Text(
                                 'View All',
                                 style: TextStyle(color: kAccentPurple),
@@ -382,7 +418,7 @@ class EventDetailsPage extends StatelessWidget {
               ),
             ),
 
-            // 4️⃣ Footer Buttons
+            // 4️⃣ Footer Buttons - Only 'Make Payment' remains
             Positioned(
               bottom: 0,
               left: 0,
@@ -403,40 +439,7 @@ class EventDetailsPage extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Send Booking Request Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => VendorScreen(
-                                eventName: "Varad's Birthday Bash",
-                              ),
-                            ),
-                          );
-                        },
-                        style: FilledButton.styleFrom(
-                          backgroundColor: kPrimaryColor,
-                          padding: const EdgeInsets.symmetric(vertical: 16.0),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'Send Booking Request',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Make Payment Button
+                    // Make Payment Button (Now the only button)
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
@@ -462,44 +465,6 @@ class EventDetailsPage extends StatelessWidget {
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Ask Eventtoria AI Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const EventtoriaAIScreen(),
-                            ),
-                          );
-                        },
-                        style: FilledButton.styleFrom(
-                          backgroundColor: kPrimaryColor,
-                          padding: const EdgeInsets.symmetric(vertical: 16.0),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildAIIcon(size: 28, fontSize: 16),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Ask Eventtoria AI',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
                         ),
                       ),
                     ),

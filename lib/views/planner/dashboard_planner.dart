@@ -4,130 +4,24 @@ import 'profile_planner.dart';
 import 'notification_screen.dart';
 import 'chat_screen.dart';
 import 'event_details.dart';
-import 'create_event.dart'; // <-- Import CreateEventPage
+import 'create_event.dart';
+import 'eventoria_ai_screen.dart';
+import 'vendor_screen.dart';
 
-class DashboardPlanner extends StatefulWidget {
-  const DashboardPlanner({super.key});
-
-  @override
-  State<DashboardPlanner> createState() => _DashboardPlannerState();
+// Helper method for Notification button navigation
+void _openNotifications(BuildContext context) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => const NotificationScreen()),
+  );
 }
 
-class _DashboardPlannerState extends State<DashboardPlanner> {
-  int selectedIndex = 0;
+// ===================================================
+// 1. EXTRACTED HOME SCREEN CONTENT: DashboardBody
+// ===================================================
 
-  void onDestinationSelected(int index) {
-    setState(() => selectedIndex = index);
-
-    Widget? targetScreen;
-
-    if (index == 1) {
-      targetScreen = const EventDetailsPage();
-    } else if (index == 2) {
-      targetScreen = const ChatScreen();
-    } else if (index == 3) {
-      targetScreen = const ProfilePlannerScreen();
-    } else if (index == 4) {
-      targetScreen = const NotificationScreen();
-    }
-
-    if (targetScreen != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => targetScreen!),
-      ).then((_) {
-        setState(() {
-          selectedIndex = 0;
-        });
-      });
-    }
-  }
-
-  Future<bool> _onWillPop() async {
-    await SystemNavigator.pop();
-    return false;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return WillPopScope(
-      onWillPop: _onWillPop,
-      child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          backgroundColor: theme.colorScheme.primary,
-          title: const Text(
-            'Eventtoria',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-        body: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            buildSectionTitle('Upcoming Events', theme),
-            const SizedBox(height: 8),
-            buildUpcomingEvents(theme),
-            const SizedBox(height: 24),
-            buildSectionTitle('Quick Stats', theme),
-            const SizedBox(height: 8),
-            buildQuickStats(theme),
-            const SizedBox(height: 24),
-            buildSectionTitle('AI Suggestions', theme),
-            const SizedBox(height: 8),
-            buildAISuggestions(theme),
-          ],
-        ),
-        floatingActionButton: Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Create Event FAB
-              FloatingActionButton.extended(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CreateEventPage()),
-                  );
-                },
-                label: const Text('Create Event'),
-                icon: const Icon(Icons.event_note),
-                backgroundColor: theme.colorScheme.primary,
-              ),
-              const SizedBox(height: 12),
-              // AI FAB with bolt icon
-              FloatingActionButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('AI Suggestions clicked!')),
-                  );
-                },
-                backgroundColor: theme.colorScheme.secondary,
-                child: const Icon(Icons.bolt, size: 28),
-              ),
-            ],
-          ),
-        ),
-        bottomNavigationBar: NavigationBar(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
-            NavigationDestination(icon: Icon(Icons.event), label: 'Events'),
-            NavigationDestination(icon: Icon(Icons.chat), label: 'Chat'),
-            NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
-            NavigationDestination(
-              icon: Icon(Icons.notifications),
-              label: 'Notify',
-            ),
-          ],
-          selectedIndex: selectedIndex,
-          onDestinationSelected: onDestinationSelected,
-        ),
-      ),
-    );
-  }
+class DashboardBody extends StatelessWidget {
+  const DashboardBody({super.key});
 
   Widget buildSectionTitle(String title, ThemeData theme) {
     return Text(
@@ -200,6 +94,35 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
     );
   }
 
+  Widget statCard(String label, String value, ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget buildQuickStats(ThemeData theme) {
     return Column(
       children: [
@@ -243,35 +166,6 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
     );
   }
 
-  Widget statCard(String label, String value, ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget buildAISuggestions(ThemeData theme) {
     final suggestions = [
       {
@@ -292,75 +186,216 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
 
     return Column(
       children: suggestions.map((s) {
-        return Card(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          color: theme.cardColor,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    s['image']!,
-                    height: 80,
-                    width: 80,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stack) => Container(
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            color: theme.cardColor,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      s['image']!,
                       height: 80,
                       width: 80,
-                      color: Colors.grey.shade300,
-                      child: const Icon(Icons.broken_image),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stack) => Container(
+                        height: 80,
+                        width: 80,
+                        color: Colors.grey.shade300,
+                        child: const Icon(Icons.broken_image),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        s['title']!,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        s['desc']!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onBackground.withOpacity(
-                            0.6,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          s['title']!,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      FilledButton.tonal(
-                        onPressed: () {},
-                        style: FilledButton.styleFrom(
-                          backgroundColor: theme.colorScheme.primary,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
+                        Text(
+                          s['desc']!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onBackground.withOpacity(
+                              0.6,
+                            ),
                           ),
                         ),
-                        child: Text(
-                          s['btn']!,
-                          style: const TextStyle(color: Colors.white),
+                        const SizedBox(height: 8),
+                        FilledButton.tonal(
+                          onPressed: () {},
+                          style: FilledButton.styleFrom(
+                            backgroundColor: theme.colorScheme.primary,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                          child: Text(
+                            s['btn']!,
+                            style: const TextStyle(color: Colors.white),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
       }).toList(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: theme.colorScheme.primary,
+        title: const Text(
+          'Eventtoria',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications, color: Colors.white),
+            onPressed: () => _openNotifications(context),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          buildSectionTitle('Upcoming Events', theme),
+          const SizedBox(height: 8),
+          buildUpcomingEvents(theme),
+          const SizedBox(height: 24),
+          buildSectionTitle('Quick Stats', theme),
+          const SizedBox(height: 8),
+          buildQuickStats(theme),
+          const SizedBox(height: 24),
+          buildSectionTitle('AI Suggestions', theme),
+          const SizedBox(height: 8),
+          buildAISuggestions(theme),
+        ],
+      ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CreateEventPage()),
+                );
+              },
+              label: const Text('Create Event'),
+              icon: const Icon(Icons.event_note),
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: Colors.white,
+            ),
+            const SizedBox(height: 12),
+            FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const EventtoriaAIScreen()),
+                );
+              },
+              backgroundColor: theme.colorScheme.secondary,
+              child: const Icon(
+                Icons.auto_awesome,
+                size: 28,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ===================================================
+// 2. MAIN DASHBOARD WIDGET (Handles Navigation)
+// ===================================================
+
+class DashboardPlanner extends StatefulWidget {
+  const DashboardPlanner({super.key});
+
+  @override
+  State<DashboardPlanner> createState() => _DashboardPlannerState();
+}
+
+class _DashboardPlannerState extends State<DashboardPlanner> {
+  int selectedIndex = 0;
+
+  final String currentEventName = "Annual Tech Conference";
+
+  void onDestinationSelected(int index) {
+    setState(() => selectedIndex = index);
+  }
+
+  Future<bool> _onWillPop() async {
+    if (selectedIndex == 0) {
+      await SystemNavigator.pop();
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    // Screens are dynamically created here to include VendorsScreen
+    final List<Widget> _widgetOptions = [
+      const DashboardBody(),
+      VendorsScreen(eventName: currentEventName),
+      const EventDetailsPage(),
+      const ChatScreen(),
+      const ProfilePlannerScreen(),
+    ];
+
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        body: IndexedStack(index: selectedIndex, children: _widgetOptions),
+        bottomNavigationBar: NavigationBar(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          destinations: const [
+            NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
+            NavigationDestination(icon: Icon(Icons.groups), label: 'Vendors'),
+            NavigationDestination(
+              icon: Icon(Icons.calendar_month),
+              label: 'Bookings',
+            ),
+            NavigationDestination(icon: Icon(Icons.chat), label: 'Chat'),
+            NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
+          ],
+          selectedIndex: selectedIndex,
+          onDestinationSelected: onDestinationSelected,
+        ),
+      ),
     );
   }
 }
