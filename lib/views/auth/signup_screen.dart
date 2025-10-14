@@ -1,4 +1,4 @@
-import 'package:eventtoria/views/planner/dashboard_planner.dart';
+import 'package:eventtoria/views/planner/planner_dashboard.dart';
 import 'package:eventtoria/views/vendor/vendor_dashboard.dart';
 import 'package:eventtoria/views/auth/login_screen.dart';
 import 'package:eventtoria/widgets/role_selector.dart';

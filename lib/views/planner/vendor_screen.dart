@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'planner_dashboard.dart'; // Import the PlannerDashboard file
 
 class VendorsScreen extends StatelessWidget {
   final String eventName;
@@ -11,7 +12,6 @@ class VendorsScreen extends StatelessWidget {
   static const Color backgroundDark = Color(0xFF190F23);
 
   void _sendBookingRequest(BuildContext context, String vendorName) {
-    // Example: show a confirmation snackbar
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -20,7 +20,6 @@ class VendorsScreen extends StatelessWidget {
         duration: const Duration(seconds: 2),
       ),
     );
-    // TODO: Integrate Firebase or backend logic to save booking request
   }
 
   @override
@@ -62,97 +61,95 @@ class VendorsScreen extends StatelessWidget {
       },
     ];
 
-    return Scaffold(
-      backgroundColor: isDark ? backgroundDark : backgroundLight,
-      appBar: AppBar(
-        backgroundColor: isDark
-            ? backgroundDark.withOpacity(0.8)
-            : backgroundLight.withOpacity(0.8),
-        elevation: 0,
-        centerTitle: true,
-        title: Text(
-          'Vendors for "$eventName"',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const PlannerDashboard()),
+        );
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: isDark ? backgroundDark : backgroundLight,
+        appBar: AppBar(
+          backgroundColor: isDark
+              ? backgroundDark.withOpacity(0.8)
+              : backgroundLight.withOpacity(0.8),
+          elevation: 0,
+          centerTitle: true,
+          title: Text(
+            'Vendors for "$eventName"',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+
+          // ✅ Updated Back Button (Navigates & Clears Stack)
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+            onPressed: () {
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/dashboard',
+                (route) => false,
+              );
+            },
+          ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: Column(
-        children: [
-          // Search Field
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                hintText: 'Search vendors',
-                filled: true,
-                fillColor: isDark
-                    ? Colors.black.withOpacity(0.2)
-                    : Colors.white,
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(50),
-                  borderSide: const BorderSide(color: primaryColor, width: 2),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(50),
-                  borderSide: BorderSide(color: Colors.transparent),
+        body: Column(
+          children: [
+            // Search Field
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: TextField(
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                  hintText: 'Search vendors',
+                  filled: true,
+                  fillColor: isDark
+                      ? Colors.black.withOpacity(0.2)
+                      : Colors.white,
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(50),
+                    borderSide: const BorderSide(color: primaryColor, width: 2),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(50),
+                    borderSide: const BorderSide(color: Colors.transparent),
+                  ),
                 ),
               ),
             ),
-          ),
-          // Filters Scrollable
-          SizedBox(
-            height: 48,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                filterButton('Service Type', Icons.expand_more, isDark),
-                const SizedBox(width: 8),
-                filterButton('Availability', Icons.expand_more, isDark),
-                const SizedBox(width: 8),
-                filterButton('Rating', Icons.expand_more, isDark),
-              ],
+
+            // Filters Scrollable
+            SizedBox(
+              height: 48,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  filterButton('Service Type', Icons.expand_more, isDark),
+                  const SizedBox(width: 8),
+                  filterButton('Availability', Icons.expand_more, isDark),
+                  const SizedBox(width: 8),
+                  filterButton('Rating', Icons.expand_more, isDark),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          // Vendor List
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: vendors.length,
-              itemBuilder: (context, index) {
-                final vendor = vendors[index];
-                return vendorCard(vendor, isDark, context);
-              },
+
+            const SizedBox(height: 8),
+
+            // Vendor List
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: vendors.length,
+                itemBuilder: (context, index) {
+                  final vendor = vendors[index];
+                  return vendorCard(vendor, isDark, context);
+                },
+              ),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: 1,
-        backgroundColor: isDark
-            ? backgroundDark.withOpacity(0.8)
-            : backgroundLight.withOpacity(0.8),
-        selectedItemColor: primaryColor,
-        unselectedItemColor: isDark ? Colors.grey[400] : Colors.grey[600],
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.celebration),
-            label: 'Vendors',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble), label: 'Chat'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Alerts',
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -258,7 +255,6 @@ class VendorsScreen extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {},
-                    child: const Text('View Profile'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: VendorsScreen.primaryColor,
                       side: const BorderSide(color: VendorsScreen.primaryColor),
@@ -266,6 +262,7 @@ class VendorsScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(50),
                       ),
                     ),
+                    child: const Text('View Profile'),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -273,13 +270,13 @@ class VendorsScreen extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: () =>
                         _sendBookingRequest(context, vendor['name']!),
-                    child: const Text('Book Now'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: VendorsScreen.primaryColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(50),
                       ),
                     ),
+                    child: const Text('Book Now'),
                   ),
                 ),
               ],

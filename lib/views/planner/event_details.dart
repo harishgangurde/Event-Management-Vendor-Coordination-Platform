@@ -1,31 +1,15 @@
-import 'package:eventtoria/views/planner/create_event.dart';
 import 'package:eventtoria/views/planner/eventoria_ai_screen.dart';
 import 'package:flutter/material.dart';
 import 'payment_screen.dart';
 import 'vendor_screen.dart';
+import 'planner_dashboard.dart'; // Import your actual dashboard
 
-// *** ASSUMPTION: Replace this with the actual import for your dashboard page ***
-// import 'package:eventtoria/views/planner/dashboard_planner.dart';
-// class DashboardPlannerPage extends StatelessWidget { ... }
-// ****************************************************************************
-
-// Define the colors used for consistency
+// Define colors for consistency
 const Color kPrimaryColor = Color(0xFF7F06F9);
 const Color kCardDarkColor = Color(0xFF1E122D);
 const Color kAccentPurple = Color(0xFFA564E9);
 const Color kAccentRed = Color(0xFFA564E9);
 const Color kBackgroundDark = Color(0xFF100819);
-
-// NOTE: I will use CreateEventPage as a temporary stand-in for DashboardPlannerPage
-// You must replace CreateEventPage() with your actual Dashboard class name.
-class DashboardPlannerPage extends StatelessWidget {
-  const DashboardPlannerPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    // This is a dummy page for the fix. Replace it with your actual Dashboard!
-    return const CreateEventPage();
-  }
-}
 
 class EventDetailsPage extends StatelessWidget {
   const EventDetailsPage({super.key});
@@ -188,16 +172,12 @@ class EventDetailsPage extends StatelessWidget {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
             onPressed: () {
-              // *** THE CRITICAL CHANGE IS HERE ***
-              // Use pushAndRemoveUntil to clear the stack and ensure the
-              // DashboardPlannerPage is the new root.
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(
-                  // ⚠️ REPLACE DashboardPlannerPage() with your ACTUAL dashboard widget
-                  builder: (context) => const DashboardPlannerPage(),
+                  builder: (context) => const DashboardPlanner(),
                 ),
-                (route) => false, // This ensures the Login page is removed
+                (route) => false,
               );
             },
           ),
@@ -234,7 +214,7 @@ class EventDetailsPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1️⃣ Event Summary Card
+                  // Event Summary Card
                   _buildDetailCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -287,7 +267,7 @@ class EventDetailsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // 2️⃣ AI Suggestions Card
+                  // AI Suggestions Card
                   _buildDetailCard(
                     child: Column(
                       children: [
@@ -334,7 +314,7 @@ class EventDetailsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // 3️⃣ Booked Vendors Card
+                  // Booked Vendors Card
                   _buildDetailCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -355,8 +335,9 @@ class EventDetailsPage extends StatelessWidget {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
-                                        const CreateEventPage(),
+                                    builder: (context) => VendorsScreen(
+                                      eventName: "Varad's Birthday Bash",
+                                    ),
                                   ),
                                 );
                               },
@@ -418,7 +399,7 @@ class EventDetailsPage extends StatelessWidget {
               ),
             ),
 
-            // 4️⃣ Footer Buttons - Only 'Make Payment' remains
+            // Footer - Make Payment only
             Positioned(
               bottom: 0,
               left: 0,
@@ -436,39 +417,33 @@ class EventDetailsPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Make Payment Button (Now the only button)
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const PaymentScreen(),
-                            ),
-                          );
-                        },
-                        style: FilledButton.styleFrom(
-                          backgroundColor: kAccentRed,
-                          padding: const EdgeInsets.symmetric(vertical: 16.0),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PaymentScreen(),
                         ),
-                        child: const Text(
-                          'Make Payment',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      );
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: kAccentRed,
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                  ],
+                    child: const Text(
+                      'Make Payment',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),

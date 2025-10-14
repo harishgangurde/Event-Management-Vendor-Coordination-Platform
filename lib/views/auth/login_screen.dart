@@ -1,6 +1,6 @@
 import 'package:eventtoria/views/admin/dashboard_admin.dart';
 import 'package:eventtoria/views/landing/landing_screen.dart';
-import 'package:eventtoria/views/planner/dashboard_planner.dart';
+import 'package:eventtoria/views/planner/planner_dashboard.dart';
 import 'package:eventtoria/views/vendor/vendor_dashboard.dart';
 import 'package:eventtoria/views/auth/signup_screen.dart';
 import 'package:eventtoria/widgets/role_selector.dart';

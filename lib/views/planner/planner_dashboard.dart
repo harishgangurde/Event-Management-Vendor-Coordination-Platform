@@ -16,8 +16,8 @@ void _openNotifications(BuildContext context) {
   );
 }
 
-class DashboardBody extends StatelessWidget {
-  const DashboardBody({super.key});
+class PlannerDashboard extends StatelessWidget {
+  const PlannerDashboard({super.key});
 
   Widget buildSectionTitle(String title, ThemeData theme) {
     return Text(
@@ -333,7 +333,7 @@ class DashboardBody extends StatelessWidget {
 }
 
 // ===================================================
-// 2. MAIN DASHBOARD WIDGET (Handles Navigation)
+// 2. MAIN DASHBOARD WIDGET (Handles Bottom Navigation)
 // ===================================================
 
 class DashboardPlanner extends StatefulWidget {
@@ -345,12 +345,7 @@ class DashboardPlanner extends StatefulWidget {
 
 class _DashboardPlannerState extends State<DashboardPlanner> {
   int selectedIndex = 0;
-
   final String currentEventName = "Annual Tech Conference";
-
-  void onDestinationSelected(int index) {
-    setState(() => selectedIndex = index);
-  }
 
   Future<bool> _onWillPop() async {
     if (selectedIndex == 0) {
@@ -359,37 +354,63 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
     return false;
   }
 
+  void _onItemTapped(int index) {
+    setState(() {
+      selectedIndex = index;
+    });
+
+    if (index == 0) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const PlannerDashboard()),
+      );
+    } else if (index == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => VendorsScreen(eventName: currentEventName),
+        ),
+      );
+    } else if (index == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const EventDetailsPage()),
+      );
+    } else if (index == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ChatScreen()),
+      );
+    } else if (index == 4) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ProfilePlanner()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // Screens are dynamically created here to include VendorsScreen
-    final List<Widget> _widgetOptions = [
-      const DashboardBody(),
-      VendorsScreen(eventName: currentEventName),
-      const EventDetailsPage(),
-      const ChatScreen(),
-      const ProfilePlannerScreen(),
-    ];
-
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
-        body: IndexedStack(index: selectedIndex, children: _widgetOptions),
+        body: const PlannerDashboard(),
         bottomNavigationBar: NavigationBar(
           backgroundColor: theme.scaffoldBackgroundColor,
           destinations: const [
             NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
             NavigationDestination(icon: Icon(Icons.groups), label: 'Vendors'),
             NavigationDestination(
-              icon: Icon(Icons.calendar_month),
-              label: 'Bookings',
-            ),
+                icon: Icon(Icons.calendar_month), label: 'Bookings'),
             NavigationDestination(icon: Icon(Icons.chat), label: 'Chat'),
             NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
           ],
           selectedIndex: selectedIndex,
-          onDestinationSelected: onDestinationSelected,
+          onDestinationSelected: _onItemTapped,
         ),
       ),
     );

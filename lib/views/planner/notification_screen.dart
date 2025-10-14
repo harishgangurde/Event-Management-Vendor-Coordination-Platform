@@ -88,9 +88,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
     setState(() {
       notifications.clear();
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('All notifications cleared')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('All notifications cleared')));
   }
 
   // Count unread notifications
@@ -118,7 +118,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             onPressed: () {
               Navigator.pushNamedAndRemoveUntil(
                 context,
-                '/dashboard',
+                '/dashboard', // Make sure this route points to your planner dashboard
                 (route) => false,
               );
             },
@@ -132,8 +132,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
         body: Column(
           children: [
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -177,11 +179,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
                         return ListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           leading: CircleAvatar(
                             radius: 20,
                             backgroundColor:
-                                (notification['iconColor'] as Color).withOpacity(0.1),
+                                (notification['iconColor'] as Color)
+                                    .withOpacity(0.1),
                             child: Icon(
                               notification['icon'] as IconData,
                               color: notification['iconColor'] as Color,
@@ -203,16 +208,19 @@ class _NotificationScreenState extends State<NotificationScreen> {
                           ),
                           subtitle: Text(
                             notification['subtitle'] as String,
-                            style:
-                                TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 13,
+                            ),
                           ),
                           trailing: Text(
                             notification['time'] as String,
-                            style:
-                                TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                            style: TextStyle(
+                              color: Colors.grey.shade400,
+                              fontSize: 12,
+                            ),
                           ),
                           onTap: () {
-                            // Mark this single notification as read
                             setState(() {
                               notification['read'] = true;
                             });
@@ -223,76 +231,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
             ),
           ],
         ),
-        bottomNavigationBar: _buildCustomBottomNavBar(context, 4),
+        // ✅ Removed bottomNavigationBar
       ),
-    );
-  }
-
-  Widget _buildCustomBottomNavBar(BuildContext context, int selectedIndex) {
-    final items = [
-      {'icon': Icons.home, 'label': 'Home', 'index': 0},
-      {'icon': Icons.event, 'label': 'Events', 'index': 1},
-      {'icon': Icons.chat_bubble, 'label': 'Chat', 'index': 2},
-      {'icon': Icons.person, 'label': 'Profile', 'index': 3},
-      {'icon': Icons.notifications, 'label': 'Alerts', 'index': 4},
-    ];
-
-    return BottomNavigationBar(
-      currentIndex: selectedIndex,
-      onTap: (index) {
-        if (index != selectedIndex) {
-          Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
-        }
-      },
-      backgroundColor: kBackgroundDark,
-      selectedItemColor: kAccentPurple,
-      unselectedItemColor: Colors.grey.shade700,
-      type: BottomNavigationBarType.fixed,
-      showUnselectedLabels: true,
-      items: items.map((item) {
-        // Show badge for Notifications
-        if (item['index'] == 4 && unreadCount > 0) {
-          return BottomNavigationBarItem(
-            icon: Stack(
-              children: [
-                Icon(item['icon'] as IconData),
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(1),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 16,
-                      minHeight: 16,
-                    ),
-                    child: Center(
-                      child: Text(
-                        unreadCount.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                )
-              ],
-            ),
-            label: item['label'] as String,
-          );
-        } else {
-          return BottomNavigationBarItem(
-            icon: Icon(item['icon'] as IconData),
-            label: item['label'] as String,
-          );
-        }
-      }).toList(),
     );
   }
 }

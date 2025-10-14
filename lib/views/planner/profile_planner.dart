@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'setting_screen.dart'; // Import the setting screen
 
-class ProfilePlannerScreen extends StatefulWidget {
-  const ProfilePlannerScreen({super.key});
+class ProfilePlanner extends StatefulWidget {
+  const ProfilePlanner({super.key});
 
   @override
-  State<ProfilePlannerScreen> createState() => _ProfilePlannerScreenState();
+  State<ProfilePlanner> createState() => _ProfilePlannerScreenState();
 }
 
-class _ProfilePlannerScreenState extends State<ProfilePlannerScreen> {
+class _ProfilePlannerScreenState extends State<ProfilePlanner> {
   File? _selectedImage;
   bool isEditing = false;
   final picker = ImagePicker();

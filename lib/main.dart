@@ -4,7 +4,7 @@ import 'package:eventtoria/views/auth/login_screen.dart';
 import 'package:eventtoria/views/auth/signup_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'views/planner/dashboard_planner.dart';
+import 'views/planner/planner_dashboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
