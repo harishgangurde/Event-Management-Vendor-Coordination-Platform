@@ -16,6 +16,10 @@ void _openNotifications(BuildContext context) {
   );
 }
 
+// ===================================================
+// 1. HOME CONTENT WIDGET (PlannerDashboard)
+// ===================================================
+
 class PlannerDashboard extends StatelessWidget {
   const PlannerDashboard({super.key});
 
@@ -26,22 +30,34 @@ class PlannerDashboard extends StatelessWidget {
     );
   }
 
-  Widget buildUpcomingEvents(ThemeData theme) {
+  Widget buildUpcomingEvents(BuildContext context, ThemeData theme) {
     final events = [
       {
         'title': 'Grand Wedding Reception',
         'date': 'October 15, 2024',
         'image': 'assets/images/eventwedding.jpg',
+        'description':
+            'A luxurious grand wedding reception at the Royal Palace Banquet Hall featuring floral décor, live music, and a premium dining experience for 500+ guests.',
+        'venue': 'Royal Palace Banquet Hall, Mumbai',
+        'organizer': 'Shivkumar Events Pvt. Ltd.',
       },
       {
         'title': "Sarah's 30th Birthday Bash",
         'date': 'November 20, 2024',
         'image': 'assets/images/birthday_event.jpg',
+        'description':
+            'A vibrant birthday celebration with a tropical theme, photo booth, and surprise dance performances to make Sarah’s 30th birthday unforgettable!',
+        'venue': 'Skyline Rooftop Lounge, Pune',
+        'organizer': 'DreamPlanners Co.',
       },
       {
         'title': 'Annual Tech Conference',
         'date': 'December 5, 2024',
         'image': 'assets/images/annual_tech.jpg',
+        'description':
+            'An annual gathering of innovators and entrepreneurs featuring keynote speakers, product showcases, and networking opportunities.',
+        'venue': 'Tech Park Convention Center, Bengaluru',
+        'organizer': 'Innovate India Group',
       },
     ];
 
@@ -53,36 +69,53 @@ class PlannerDashboard extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, i) {
           final e = events[i];
-          return SizedBox(
-            width: 160,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(
-                    e['image']!,
-                    height: 120,
-                    width: 160,
-                    fit: BoxFit.cover,
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EventInfoPage(
+                    title: e['title']!,
+                    date: e['date']!,
+                    image: e['image']!,
+                    description: e['description']!,
+                    venue: e['venue']!,
+                    organizer: e['organizer']!,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  e['title']!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+              );
+            },
+            child: SizedBox(
+              width: 160,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      e['image']!,
+                      height: 120,
+                      width: 160,
+                      fit: BoxFit.cover,
+                    ),
                   ),
-                ),
-                Text(
-                  e['date']!,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onBackground.withOpacity(0.6),
+                  const SizedBox(height: 8),
+                  Text(
+                    e['title']!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-              ],
+                  Text(
+                    e['date']!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onBackground.withOpacity(0.6),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -162,21 +195,22 @@ class PlannerDashboard extends StatelessWidget {
     );
   }
 
-  Widget buildAISuggestions(ThemeData theme) {
+  Widget buildAISuggestions(BuildContext context, ThemeData theme) {
+    // 🌟 FIX 1: Updated 'image' keys to use local asset paths
     final suggestions = [
       {
         'title': 'Top Vendor Picks',
         'desc': 'Based on your event needs',
         'btn': 'View All',
-        'image':
-            'https://images.unsplash.com/photo-1531058020387-3be344556be6?auto=format&fit=crop&w=600&q=60',
+        'image': 'assets/images/functionss.jpg', // Placeholder for local asset
+        'prompt': 'Show me the top vendor picks for my upcoming event.',
       },
       {
         'title': 'Theme Ideas',
         'desc': 'Get inspired for your next event',
         'btn': 'Explore',
-        'image':
-            'https://images.unsplash.com/photo-1528740561666-dc2479dc08ab?auto=format&fit=crop&w=600&q=60',
+        'image': 'assets/images/themee.jpg', // Placeholder for local asset
+        'prompt': 'Give me creative theme ideas for my next event.',
       },
     ];
 
@@ -195,7 +229,8 @@ class PlannerDashboard extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
+                    // 🌟 FIX 2: Replaced Image.network with Image.asset 🌟
+                    child: Image.asset(
                       s['image']!,
                       height: 80,
                       width: 80,
@@ -229,7 +264,17 @@ class PlannerDashboard extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         FilledButton.tonal(
-                          onPressed: () {},
+                          onPressed: () {
+                            // FIX: Safely cast prompt to String?
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => EventtoriaAIScreen(
+                                  initialPrompt: s['prompt'] as String?,
+                                ),
+                              ),
+                            );
+                          },
                           style: FilledButton.styleFrom(
                             backgroundColor: theme.colorScheme.primary,
                             padding: const EdgeInsets.symmetric(
@@ -282,7 +327,7 @@ class PlannerDashboard extends StatelessWidget {
         children: [
           buildSectionTitle('Upcoming Events', theme),
           const SizedBox(height: 8),
-          buildUpcomingEvents(theme),
+          buildUpcomingEvents(context, theme),
           const SizedBox(height: 24),
           buildSectionTitle('Quick Stats', theme),
           const SizedBox(height: 8),
@@ -290,7 +335,7 @@ class PlannerDashboard extends StatelessWidget {
           const SizedBox(height: 24),
           buildSectionTitle('AI Suggestions', theme),
           const SizedBox(height: 8),
-          buildAISuggestions(theme),
+          buildAISuggestions(context, theme),
         ],
       ),
       floatingActionButton: Padding(
@@ -313,6 +358,7 @@ class PlannerDashboard extends StatelessWidget {
             const SizedBox(height: 12),
             FloatingActionButton(
               onPressed: () {
+                // FIX: Updated navigation to EventtoriaAIScreen
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const EventtoriaAIScreen()),
@@ -347,48 +393,37 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
   int selectedIndex = 0;
   final String currentEventName = "Annual Tech Conference";
 
+  // ✅ FIX: Initialize _widgetOptions directly in the constructor.
+  final List<Widget> _widgetOptions;
+
+  _DashboardPlannerState()
+    : _widgetOptions = <Widget>[
+        const PlannerDashboard(), // Index 0: Home
+        VendorsScreen(eventName: "Annual Tech Conference"), // Index 1: Vendors
+        const EventDetailsPage(), // Index 2: Bookings (Placeholder)
+        const ChatScreen(), // Index 3: Chat
+        const ProfilePlanner(), // Index 4: Profile
+      ];
+
   Future<bool> _onWillPop() async {
     if (selectedIndex == 0) {
+      // Exit app only if on the Home tab
       await SystemNavigator.pop();
+    } else {
+      // ✅ FIX: Go back to the Home tab and update the selected index
+      setState(() {
+        selectedIndex = 0;
+      });
     }
-    return false;
+    return false; // Prevent default pop behavior
   }
 
+  // ✅ FIX: The item tapped handler only updates the index
   void _onItemTapped(int index) {
     setState(() {
       selectedIndex = index;
     });
-
-    if (index == 0) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const PlannerDashboard()),
-      );
-    } else if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => VendorsScreen(eventName: currentEventName),
-        ),
-      );
-    } else if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const EventDetailsPage()),
-      );
-    } else if (index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ChatScreen()),
-      );
-    } else if (index == 4) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfilePlanner()),
-      );
-    }
+    // This correctly switches the tab index, ensuring the highlighter works.
   }
 
   @override
@@ -398,19 +433,103 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
-        body: const PlannerDashboard(),
+        // ✅ FIX: Use IndexedStack to only show the selected page's content
+        body: IndexedStack(index: selectedIndex, children: _widgetOptions),
         bottomNavigationBar: NavigationBar(
           backgroundColor: theme.scaffoldBackgroundColor,
           destinations: const [
             NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
             NavigationDestination(icon: Icon(Icons.groups), label: 'Vendors'),
             NavigationDestination(
-                icon: Icon(Icons.calendar_month), label: 'Bookings'),
+              icon: Icon(Icons.calendar_month),
+              label: 'Bookings',
+            ),
             NavigationDestination(icon: Icon(Icons.chat), label: 'Chat'),
             NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
           ],
           selectedIndex: selectedIndex,
           onDestinationSelected: _onItemTapped,
+        ),
+      ),
+    );
+  }
+}
+
+// ===============================================
+// 3. EVENT INFO PAGE (Hardcoded Details Display)
+// ===============================================
+
+class EventInfoPage extends StatelessWidget {
+  final String title;
+  final String date;
+  final String image;
+  final String description;
+  final String venue;
+  final String organizer;
+
+  const EventInfoPage({
+    super.key,
+    required this.title,
+    required this.date,
+    required this.image,
+    required this.description,
+    required this.venue,
+    required this.organizer,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(title),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: Colors.white,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(image, fit: BoxFit.cover),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(date, style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 16),
+            Text(
+              'Description',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(description, style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 16),
+            Text(
+              'Venue',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(venue, style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 16),
+            Text(
+              'Organizer',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(organizer, style: theme.textTheme.bodyMedium),
+          ],
         ),
       ),
     );

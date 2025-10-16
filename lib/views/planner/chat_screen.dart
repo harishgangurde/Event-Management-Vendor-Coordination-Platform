@@ -1,5 +1,6 @@
+import 'package:eventtoria/views/planner/planner_dashboard.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart'; // Ensure widgets are accessible for AssetImage
+import 'package:flutter/widgets.dart';
 
 // Define colors for consistency
 const Color kPrimaryColor = Color(0xFF7F06F9); // Purple
@@ -9,7 +10,6 @@ const Color kCardDarkColor = Color(0xFF1E122D);
 
 class ChatScreen extends StatelessWidget {
   const ChatScreen({super.key});
-
 
   static const String vendorAvatar = 'assets/images/atharva.jpg';
   static const String plannerAvatar = 'assets/images/varad.jpg';
@@ -29,9 +29,18 @@ class ChatScreen extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
+          // ✅ IMPLEMENTED FIX: Use pushAndRemoveUntil to reset to DashboardPlanner
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const DashboardPlanner(),
+                ),
+                (route) => false, // Clears the entire stack
+              );
+            },
           ),
           title: const Column(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -104,10 +113,11 @@ class ChatScreen extends StatelessWidget {
       },
     ];
 
+    // Increased padding to account for the removed quick replies section
     return ListView.builder(
       padding: const EdgeInsets.only(
-        bottom: 250,
-      ), // Padding to avoid input field overlap
+        bottom: 100, // Reduced from 250, as the input field is now smaller
+      ),
       itemCount: messages.length,
       itemBuilder: (context, index) {
         final msg = messages[index];
@@ -144,7 +154,6 @@ class ChatScreen extends StatelessWidget {
           : const Radius.circular(20),
     );
 
-    // FIXED: Use AssetImage instead of NetworkImage
     final avatar = CircleAvatar(
       radius: 16,
       backgroundImage: AssetImage(isPlanner ? plannerAvatar : vendorAvatar),
@@ -244,7 +253,7 @@ class ChatScreen extends StatelessWidget {
     );
   }
 
-  // --- AI Quick Replies and Input ---
+  // --- Input Field (Modified) ---
   Widget _buildChatInput(BuildContext context) {
     return Positioned(
       bottom: 0,
@@ -262,139 +271,62 @@ class ChatScreen extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        // Text Input Field (Simplified)
+        child: Row(
           children: [
-            // AI Quick Replies Section
-            Container(
-              padding: const EdgeInsets.only(bottom: 12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.auto_awesome,
-                            color: kAccentPurple,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'AI Quick Replies',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.grey),
-                        onPressed: () {
-                          // Hide quick replies
-                        },
-                      ),
-                    ],
+            Expanded(
+              child: TextField(
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Type a message...',
+                  hintStyle: TextStyle(color: Colors.grey.shade500),
+                  filled: true,
+                  fillColor: kCardDarkColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide.none,
                   ),
-                  const SizedBox(height: 8),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _buildQuickReplyButton(
-                          context,
-                          'Confirm setup by 5:45 PM',
-                          () {},
-                        ),
-                        const SizedBox(width: 8),
-                        _buildQuickReplyButton(
-                          context,
-                          'Ask about their arrival',
-                          () {},
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Text Input Field
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: 'Type a message...',
-                      hintStyle: TextStyle(color: Colors.grey.shade500),
-                      filled: true,
-                      fillColor: kCardDarkColor,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none,
-                      ),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.mic, color: Colors.white),
-                        onPressed: () {},
-                      ),
-                      prefixIcon: IconButton(
-                        icon: const Icon(
-                          Icons.add_circle_outline,
-                          color: Colors.white,
-                        ),
-                        onPressed: () {},
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 15,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  height: 50,
-                  width: 50,
-                  decoration: BoxDecoration(
-                    color: kPrimaryColor,
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white),
+                  // Mic/Attachment icons
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.mic, color: Colors.white),
                     onPressed: () {
-                      // Handle send action
+                      // Handle voice recording
                     },
                   ),
+                  prefixIcon: IconButton(
+                    icon: const Icon(
+                      Icons.add_circle_outline,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {
+                      // Handle attachment action
+                    },
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 15,
+                  ),
                 ),
-              ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              height: 50,
+              width: 50,
+              decoration: BoxDecoration(
+                color: kPrimaryColor,
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.send, color: Colors.white),
+                onPressed: () {
+                  // Handle send action
+                },
+              ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildQuickReplyButton(
-    BuildContext context,
-    String text,
-    VoidCallback onTap,
-  ) {
-    return ActionChip(
-      label: Text(
-        text,
-        style: TextStyle(color: kAccentPurple, fontWeight: FontWeight.w600),
-      ),
-      backgroundColor: kAccentPurple.withOpacity(0.15),
-      onPressed: onTap,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: kAccentPurple.withOpacity(0.5)),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
     );
   }
 }

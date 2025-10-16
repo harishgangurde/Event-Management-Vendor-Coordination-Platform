@@ -3,13 +3,13 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../services/gemini_service.dart';
 
-// Define the colors used for consistency
+// Colors
 const Color kPrimaryColor = Color(0xFF7F06F9);
 const Color kAccentPurple = Color(0xFFA564E9);
 const Color kBackgroundDark = Color(0xFF100819);
 const Color kCardDarkColor = Color(0xFF1E122D);
 
-// Data structure to hold messages
+// Chat message data
 class ChatMessage {
   final String text;
   final bool isUser;
@@ -19,7 +19,9 @@ class ChatMessage {
 }
 
 class EventtoriaAIScreen extends StatefulWidget {
-  const EventtoriaAIScreen({super.key});
+  final String? initialPrompt; // <-- NEW
+
+  const EventtoriaAIScreen({super.key, this.initialPrompt});
 
   @override
   State<EventtoriaAIScreen> createState() => _EventtoriaAIScreenState();
@@ -38,6 +40,17 @@ class _EventtoriaAIScreenState extends State<EventtoriaAIScreen> {
       isUser: false,
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // If dashboard passes an initial prompt, auto-send it
+    if (widget.initialPrompt != null && widget.initialPrompt!.isNotEmpty) {
+      _controller.text = widget.initialPrompt!;
+      _sendMessage();
+      _showMenuCards = false;
+    }
+  }
 
   // --- API CALL LOGIC ---
   void _sendMessage() async {
@@ -91,18 +104,15 @@ class _EventtoriaAIScreenState extends State<EventtoriaAIScreen> {
     _scrollToEnd();
   }
 
-  // --- TASK CARD HANDLER ---
   void _handleTaskCardTap(String promptTitle) {
     setState(() {
       _showMenuCards = false;
     });
-
     _controller.text = promptTitle;
     _sendMessage();
   }
 
-  // --- UI HELPER METHODS ---
-
+  // ---------------- UI ----------------
   Widget _buildTaskCard({
     required IconData icon,
     required String title,
@@ -150,19 +160,14 @@ class _EventtoriaAIScreenState extends State<EventtoriaAIScreen> {
     final bool isUser = message.isUser;
     final theme = Theme.of(context);
 
-    // Style the Markdown rendering for the dark theme
     final markdownStyleSheet = MarkdownStyleSheet.fromTheme(theme).copyWith(
-      // Style for regular paragraphs (p)
       p: const TextStyle(color: Colors.white, fontSize: 16),
-      // Style for strong text (e.g., **Local Talent:**)
       strong: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-      // Style for headings (h3/###)
       h3: theme.textTheme.titleMedium?.copyWith(
         fontWeight: FontWeight.bold,
         color: kAccentPurple,
         height: 1.5,
       ),
-      // Remove default bullet point padding/indentation
       listIndent: 20,
       listBullet: const TextStyle(color: Colors.white),
     );
@@ -184,23 +189,18 @@ class _EventtoriaAIScreenState extends State<EventtoriaAIScreen> {
             bottomRight: isUser ? Radius.zero : const Radius.circular(16),
           ),
         ),
-
-        // --- CONDITIONAL WIDGET BASED ON ROLE ---
         child: isUser
             ? Text(
-                // Use Text for user messages
                 message.text,
                 style: const TextStyle(color: Colors.white, fontSize: 16),
               )
             : MarkdownBody(
-                // Use MarkdownBody for AI responses
                 data: message.text.isEmpty && message.isStreaming
                     ? 'Typing...'
                     : message.text,
                 selectable: true,
                 styleSheet: markdownStyleSheet,
               ),
-        // ----------------------------------------
       ),
     );
   }
@@ -263,7 +263,7 @@ class _EventtoriaAIScreenState extends State<EventtoriaAIScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
             onPressed: () => Navigator.pop(context),
           ),
           title: const Text(
@@ -278,7 +278,6 @@ class _EventtoriaAIScreenState extends State<EventtoriaAIScreen> {
         ),
         body: Column(
           children: [
-            // CONTENT AREA (Switches between Menu Cards and Chat History)
             Expanded(
               child: SingleChildScrollView(
                 controller: _scrollController,
@@ -291,24 +290,20 @@ class _EventtoriaAIScreenState extends State<EventtoriaAIScreen> {
                       style: TextStyle(fontSize: 16, color: Colors.white),
                     ),
                     const SizedBox(height: 24),
-
-                    // CONDITIONAL VIEW
                     if (_showMenuCards) ...[
-                      ...tasks
-                          .map(
-                            (task) => Padding(
-                              padding: const EdgeInsets.only(bottom: 12.0),
-                              child: _buildTaskCard(
-                                icon: task['icon'] as IconData,
-                                title: task['title'] as String,
-                                subtitle: task['subtitle'] as String,
-                                iconColor: task['color'] as Color,
-                                onTap: () =>
-                                    _handleTaskCardTap(task['title'] as String),
-                              ),
-                            ),
-                          )
-                          .toList(),
+                      ...tasks.map(
+                        (task) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: _buildTaskCard(
+                            icon: task['icon'] as IconData,
+                            title: task['title'] as String,
+                            subtitle: task['subtitle'] as String,
+                            iconColor: task['color'] as Color,
+                            onTap: () =>
+                                _handleTaskCardTap(task['title'] as String),
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 120),
                     ] else ...[
                       ..._messages
@@ -320,8 +315,6 @@ class _EventtoriaAIScreenState extends State<EventtoriaAIScreen> {
                 ),
               ),
             ),
-
-            // FIXED INPUT FIELD at the bottom
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(

@@ -1,5 +1,5 @@
+import 'package:eventtoria/views/planner/planner_dashboard.dart';
 import 'package:flutter/material.dart';
-import 'planner_dashboard.dart'; // Import the PlannerDashboard file
 
 class VendorsScreen extends StatelessWidget {
   final String eventName;
@@ -11,6 +11,12 @@ class VendorsScreen extends StatelessWidget {
   static const Color backgroundLight = Color(0xFFF7F5F8);
   static const Color backgroundDark = Color(0xFF190F23);
 
+  // 💡 Asset paths for vendor images (Using generic placeholders for mock data)
+  static const String vendorImage1 = 'assets/images/delicious.png';
+  static const String vendorImage2 = 'assets/images/moments.png';
+  static const String vendorImage3 = 'assets/images/elegant.png';
+  static const String vendorImage4 = 'assets/images/floral.png';
+
   void _sendBookingRequest(BuildContext context, String vendorName) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -19,6 +25,15 @@ class VendorsScreen extends StatelessWidget {
         ),
         duration: const Duration(seconds: 2),
       ),
+    );
+  }
+
+  // Helper function to handle consistent navigation back to the Dashboard
+  void _navigateBackToDashboard(BuildContext context) {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const DashboardPlanner()),
+      (route) => false, // Clears the entire stack
     );
   }
 
@@ -32,42 +47,36 @@ class VendorsScreen extends StatelessWidget {
         'type': 'Catering',
         'rating': 4.9,
         'reviews': 120,
-        'image':
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuClCKBDbMKgv0-WwT69JGz0xGYUbNej-n1oVqHyoIWjRS_UJ2ybWJiZAtOOPvEMTtqZsdmYnC5lucRKYmOPuq2WLpCUwvAZj8z_UVdBWG9qcoZAM55Hi784D0ksfG5z0rfhDsFcYa_AgFowM_gUS5kcX7aHgeWUW7-pRFUyMjCZUZThtSFSVUD4x7n1X13qqdWJUzpgMFu15P0SoBtN7mEw-TXziWsm6fOTo19ndtbYumX1zWWgNgbfLRekquBs3YoykSExQKKa2w',
+        'image': vendorImage1,
       },
       {
         'name': 'Captured Moments',
         'type': 'Photography',
         'rating': 5.0,
         'reviews': 85,
-        'image':
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuBCghMybtaNZpcX6GzRuYX1kBXGYKWGOeiYlsShZUrN1hhXoEJi_ZlDtfpUMI9F1j2xQu_AnNcD9n4I8N53hJ4Keq-BY7HEppIHO0M9vnngwJo32-rI36TuR_b0ry4elr3_HOvlS4Hrsbtf_ffZzoqGewiMilMVhn0yDRu7YW1E-YECjnnjqJ86G-JXwHu72GVs336MeST_do7J1XZpxL0aGO9VFEW1fi3u5G4Mkv86uAjvWZa4_3miqxOtDLkm-PkgPhd3abCmZA',
+        'image': vendorImage2,
       },
       {
         'name': 'Elegant Spaces',
         'type': 'Venue',
         'rating': 4.8,
         'reviews': 210,
-        'image':
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuD8lKyaqdFn2Gpx821auZx-7DxNkxeIZJtDVXnvHkqxriR-smdd6m7tIIUsqzV1WJzRbmuO-XG3kKPKRRmmMw2hfxjJZEGN7BHJPXtK-FtXPXuhXhlSI59haaAlFRepB1EzlaIIPJ7I9a22OBZf7icdCr6rNMbAkvkUtzAvTjYewha9fOTA0zB0dx_OIK8F2HYm5XtWC1CQxx-KQH9ZAzYi3GSd6RiWsloPzpNiBHQv2GtBqJA7LXGnT_h35Pq0c6TVL5LbkzWUWg',
+        'image': vendorImage3,
       },
       {
         'name': 'Floral Fantasies',
         'type': 'Decor',
         'rating': 4.9,
         'reviews': 98,
-        'image':
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuDOqYXkoi-_I635pnkNpBgSgVXy3dXqe2aVbYsN_xKYIEI1COopy7m7A-9mnHbTcSi3vSPIyQhqiJKK_41NqlBahud6pVFRSWyF7mxuBCIRSQxaaijsluYYS4GqDd9mHoFz8euM_h3vv65OjCRI-Zs--kFCuMUJ6_UvTPAGYCeG6IAKMjfxo9IDfP6LLr-f-ksJMHEnyS1GWLRm7Zix0rVKtahfQUf-e6DxcoRWOp0Y1PbKm-LsOQt_yTdrLxkyqDO7jGZTGAuGVA',
+        'image': vendorImage4,
       },
     ];
 
     return WillPopScope(
+      // ✅ FIX 1: Apply the requested pushAndRemoveUntil logic to the back gesture/button
       onWillPop: () async {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const PlannerDashboard()),
-        );
-        return false;
+        _navigateBackToDashboard(context);
+        return false; // Prevents the default pop action
       },
       child: Scaffold(
         backgroundColor: isDark ? backgroundDark : backgroundLight,
@@ -77,25 +86,23 @@ class VendorsScreen extends StatelessWidget {
               : backgroundLight.withOpacity(0.8),
           elevation: 0,
           centerTitle: true,
-          title: Text(
-            'Vendors for "$eventName"',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          title: const Text(
+            'Vendors',
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
 
-          // ✅ Updated Back Button (Navigates & Clears Stack)
+          // ✅ FIX 2: Apply the requested pushAndRemoveUntil logic to the leading icon
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
             onPressed: () {
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                '/dashboard',
-                (route) => false,
-              );
+              _navigateBackToDashboard(context);
             },
           ),
         ),
         body: Column(
           children: [
+            // ... (Search Field and Filters Scrollable remain unchanged) ...
+
             // Search Field
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -195,11 +202,18 @@ class VendorsScreen extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    vendor['image']!,
+                  // Image.asset is correctly implemented here
+                  child: Image.asset(
+                    vendor['image']!, // Get asset path from the vendor map
                     height: 80,
                     width: 80,
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: 80,
+                      width: 80,
+                      color: Colors.grey.shade300,
+                      child: const Icon(Icons.broken_image, color: Colors.red),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -209,9 +223,10 @@ class VendorsScreen extends StatelessWidget {
                     children: [
                       Text(
                         vendor['name']!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
+                          color: isDark ? Colors.white : Colors.black,
                         ),
                       ),
                       Text(
@@ -232,7 +247,10 @@ class VendorsScreen extends StatelessWidget {
                           const SizedBox(width: 4),
                           Text(
                             '${vendor['rating']}',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : Colors.black,
+                            ),
                           ),
                           const SizedBox(width: 4),
                           Text(

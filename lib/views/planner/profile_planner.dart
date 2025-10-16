@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'package:eventtoria/views/planner/planner_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'setting_screen.dart'; // Import the setting screen
+import 'package:intl/intl.dart'; // REQUIRED for date formatting
 
 class ProfilePlanner extends StatefulWidget {
   const ProfilePlanner({super.key});
@@ -21,6 +23,7 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
   static const String _pastEvent3 = 'assets/images/birthday.jpg';
   static const String _pastEvent4 = 'assets/images/product.jpg';
 
+  // State Variables
   String name = 'Rugwed Khairnar';
   String userType = 'Event Planner';
   String joinedDate = 'Joined 2024';
@@ -42,12 +45,57 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
     }
   }
 
+  // 🌟 Date Picker Logic 🌟
+  Future<void> _selectDate() async {
+    DateTime initialDate;
+    try {
+      initialDate = DateFormat('MMMM d, yyyy').parse(dateOfBirth);
+    } catch (e) {
+      initialDate = DateTime(2005, 7, 28); // Default date if parsing fails
+    }
+
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            // Customize date picker theme if needed
+            colorScheme: ColorScheme.light(
+              primary: Theme.of(context).colorScheme.primary, // Primary color
+              onPrimary: Colors.white, // Text color on primary color
+              onSurface: Colors.black, // Text color on background
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedDate != null) {
+      final formattedDate = DateFormat('MMMM d, yyyy').format(pickedDate);
+      setState(() {
+        dateOfBirth = formattedDate;
+        dobController.text = formattedDate;
+      });
+    }
+  }
+  // 🌟 END: Date Picker Logic 🌟
+
   void _startEditing() {
     nameController.text = name;
     emailController.text = email;
     phoneController.text = phone;
     addressController.text = address;
-    dobController.text = dateOfBirth;
+    dobController.text =
+        dateOfBirth; // Initialize controller with current value
     setState(() => isEditing = true);
   }
 
@@ -94,9 +142,18 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+        // ✅ FIX: Use pushAndRemoveUntil to reset the stack and go to DashboardPlanner
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            // This ensures the user lands on the main tab container (DashboardPlanner)
+            // with a clean navigation stack, guaranteeing the tabs load correctly.
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const DashboardPlanner()),
+              (route) => false,
+            );
+          },
         ),
         actions: [
           IconButton(
@@ -285,11 +342,27 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
   Widget buildEditableFields() {
     return Column(
       children: [
-        textField(Icons.person, 'Full Name', nameController),
-        textField(Icons.email, 'Email', emailController),
-        textField(Icons.phone, 'Phone', phoneController),
-        textField(Icons.cake, 'Date of Birth', dobController),
-        textField(Icons.home_mini, 'Address', addressController),
+        textField(
+          Icons.person,
+          'Full Name',
+          nameController,
+          isDateField: false,
+        ),
+        textField(Icons.email, 'Email', emailController, isDateField: false),
+        textField(Icons.phone, 'Phone', phoneController, isDateField: false),
+        // Date of Birth field now calls the date picker
+        textField(
+          Icons.cake,
+          'Date of Birth',
+          dobController,
+          isDateField: true,
+        ),
+        textField(
+          Icons.home_mini,
+          'Address',
+          addressController,
+          isDateField: false,
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 6.0),
           child: buildInfoCardTile(Icons.account_circle, 'User Type', userType),
@@ -298,15 +371,19 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
     );
   }
 
+  // 🌟 UPDATED: Added isDateField parameter to conditionally add onTap behavior
   Widget textField(
     IconData icon,
     String label,
-    TextEditingController controller,
-  ) {
+    TextEditingController controller, {
+    required bool isDateField,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: TextField(
         controller: controller,
+        readOnly: isDateField, // Makes DOB field read-only to force date picker
+        onTap: isDateField ? _selectDate : null, // Opens date picker on tap
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: Theme.of(context).colorScheme.primary),
           labelText: label,
@@ -322,10 +399,42 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
 
   Widget buildPastEventsSection(BuildContext context) {
     final events = [
-      {'title': 'Elegant Wedding', 'date': '12/12/2023', 'image': _pastEvent1},
-      {'title': 'Corporate Gala', 'date': '11/15/2023', 'image': _pastEvent2},
-      {'title': 'Birthday Bash', 'date': '10/20/2023', 'image': _pastEvent3},
-      {'title': 'Product Launch', 'date': '09/01/2023', 'image': _pastEvent4},
+      {
+        'title': 'Elegant Wedding',
+        'date': '12/12/2023',
+        'image': _pastEvent1,
+        'description':
+            'A royal wedding ceremony with floral decorations and a grand banquet.',
+        'venue': 'Royal Palace Banquet Hall, Mumbai',
+        'organizer': 'Shivkumar Events Pvt. Ltd.',
+      },
+      {
+        'title': 'Corporate Gala',
+        'date': '11/15/2023',
+        'image': _pastEvent2,
+        'description':
+            'An elegant corporate evening with awards and networking opportunities.',
+        'venue': 'Grand Hyatt, Pune',
+        'organizer': 'Elite Corporate Planners',
+      },
+      {
+        'title': 'Birthday Bash',
+        'date': '10/20/2023',
+        'image': _pastEvent3,
+        'description':
+            'A fun and vibrant birthday party with themed decorations and activities.',
+        'venue': 'Skyline Rooftop Lounge, Pune',
+        'organizer': 'DreamPlanners Co.',
+      },
+      {
+        'title': 'Product Launch',
+        'date': '09/01/2023',
+        'image': _pastEvent4,
+        'description':
+            'A product launch event with media coverage, presentations, and demos.',
+        'venue': 'Tech Park Convention Center, Bengaluru',
+        'organizer': 'Innovate India Group',
+      },
     ];
 
     return SizedBox(
@@ -336,38 +445,89 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
         separatorBuilder: (_, __) => const SizedBox(width: 16),
         itemBuilder: (context, i) {
           final e = events[i];
-          return SizedBox(
-            width: 160,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Flexible(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: AspectRatio(
-                      aspectRatio: 3 / 4,
-                      child: Image.asset(e['image']!, fit: BoxFit.cover),
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => EventDetailScreen(event: e)),
+              );
+            },
+            child: SizedBox(
+              width: 160,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Flexible(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: AspectRatio(
+                        aspectRatio: 3 / 4,
+                        child: Image.asset(e['image']!, fit: BoxFit.cover),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  e['title']!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 16,
+                  const SizedBox(height: 4),
+                  Text(
+                    e['title']!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                    ),
                   ),
-                ),
-                Text(
-                  e['date']!,
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-              ],
+                  Text(
+                    e['date']!,
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ],
+              ),
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+// New screen to show event details (Remains unchanged)
+class EventDetailScreen extends StatelessWidget {
+  final Map<String, String> event;
+
+  const EventDetailScreen({super.key, required this.event});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(event['title']!)),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Image.asset(event['image']!, fit: BoxFit.cover),
+            const SizedBox(height: 16),
+            Text(
+              'Date: ${event['date']!}',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Venue: ${event['venue']!}',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Organizer: ${event['organizer']!}',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Description: ${event['description']!}',
+              style: const TextStyle(fontSize: 16),
+            ),
+          ],
+        ),
       ),
     );
   }
