@@ -202,14 +202,14 @@ class PlannerDashboard extends StatelessWidget {
         'title': 'Top Vendor Picks',
         'desc': 'Based on your event needs',
         'btn': 'View All',
-        'image': 'assets/images/functionss.jpg', // Placeholder for local asset
+        'image': 'assets/images/functionss.jpg',
         'prompt': 'Show me the top vendor picks for my upcoming event.',
       },
       {
         'title': 'Theme Ideas',
         'desc': 'Get inspired for your next event',
         'btn': 'Explore',
-        'image': 'assets/images/themee.jpg', // Placeholder for local asset
+        'image': 'assets/images/themee.jpg',
         'prompt': 'Give me creative theme ideas for my next event.',
       },
     ];
@@ -265,7 +265,6 @@ class PlannerDashboard extends StatelessWidget {
                         const SizedBox(height: 8),
                         FilledButton.tonal(
                           onPressed: () {
-                            // FIX: Safely cast prompt to String?
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -358,7 +357,6 @@ class PlannerDashboard extends StatelessWidget {
             const SizedBox(height: 12),
             FloatingActionButton(
               onPressed: () {
-                // FIX: Updated navigation to EventtoriaAIScreen
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const EventtoriaAIScreen()),
@@ -393,7 +391,6 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
   int selectedIndex = 0;
   final String currentEventName = "Annual Tech Conference";
 
-  // ✅ FIX: Initialize _widgetOptions directly in the constructor.
   final List<Widget> _widgetOptions;
 
   _DashboardPlannerState()
@@ -410,20 +407,17 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
       // Exit app only if on the Home tab
       await SystemNavigator.pop();
     } else {
-      // ✅ FIX: Go back to the Home tab and update the selected index
       setState(() {
         selectedIndex = 0;
       });
     }
-    return false; // Prevent default pop behavior
+    return false;
   }
 
-  // ✅ FIX: The item tapped handler only updates the index
   void _onItemTapped(int index) {
     setState(() {
       selectedIndex = index;
     });
-    // This correctly switches the tab index, ensuring the highlighter works.
   }
 
   @override
