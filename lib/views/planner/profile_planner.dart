@@ -1,5 +1,11 @@
+// lib/views/planner/profile_planner.dart
+
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:eventtoria/config/app_theme.dart';
 import 'package:eventtoria/views/planner/planner_dashboard.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'setting_screen.dart'; // Import the setting screen
@@ -14,44 +20,134 @@ class ProfilePlanner extends StatefulWidget {
 
 class _ProfilePlannerScreenState extends State<ProfilePlanner> {
   File? _selectedImage;
+  String? _profileImageUrl;
   bool isEditing = false;
+  bool _isLoading = true;
+  bool _isSaving = false;
   final picker = ImagePicker();
 
-  static const String _defaultAvatarPath = 'assets/images/default.jpg';
-  static const String _pastEvent1 = 'assets/images/eventwedding.jpg';
-  static const String _pastEvent2 = 'assets/images/gala.jpg';
-  static const String _pastEvent3 = 'assets/images/birthday.jpg';
-  static const String _pastEvent4 = 'assets/images/product.jpg';
-
-  // State Variables
-  String name = 'Rugwed Khairnar';
-  String userType = 'Event Planner';
-  String joinedDate = 'Joined 2024';
-  String phone = '8334645968';
-  String email = 'rugwed@gmail.com';
-  String dateOfBirth = 'July 28, 2005';
-  String address = 'Guthe Lawns, Gangapur Road, Nashik';
-
+  // Controllers
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
   final addressController = TextEditingController();
   final dobController = TextEditingController();
 
-  Future<void> _pickImage() async {
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() => _selectedImage = File(pickedFile.path));
+  // State Variables (getters for controllers)
+  String get name => nameController.text;
+  String get userType => 'Event Planner';
+  String get joinedDate => 'Joined 2024';
+  String get phone => phoneController.text;
+  String get email => emailController.text;
+  String get dateOfBirth => dobController.text;
+  String get address => addressController.text;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        setState(() {
+          nameController.text = data['name'] ?? 'Your Name';
+          emailController.text = data['email'] ?? 'your.email@example.com';
+          phoneController.text = data['phone'] ?? '';
+          addressController.text = data['address'] ?? '';
+          dobController.text = data['dob'] ?? '';
+          _profileImageUrl = data['profileImageUrl'];
+        });
+      } else {
+         setState(() {
+            nameController.text = 'Your Name';
+            emailController.text = user.email ?? 'your.email@example.com';
+         });
+      }
+    } catch (e) {
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading profile: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if(mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
-  // 🌟 Date Picker Logic 🌟
+  Future<void> _pickImage() async {
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile == null) return;
+
+    setState(() {
+      _selectedImage = File(pickedFile.path);
+      _isSaving = true;
+    });
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception("User not logged in");
+
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_pictures')
+          .child(user.uid); 
+
+      UploadTask uploadTask = storageRef.putFile(_selectedImage!);
+      TaskSnapshot snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .update({'profileImageUrl': downloadUrl});
+
+      setState(() {
+        _profileImageUrl = downloadUrl;
+        _selectedImage = null;
+      });
+
+       if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile picture updated!')),
+        );
+       }
+
+    } catch (e) {
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to upload image: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if(mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
   Future<void> _selectDate() async {
     DateTime initialDate;
     try {
-      initialDate = DateFormat('MMMM d, yyyy').parse(dateOfBirth);
+      initialDate = DateFormat('MMMM d, yyyy').parse(dobController.text);
     } catch (e) {
-      initialDate = DateTime(2005, 7, 28); // Default date if parsing fails
+      initialDate = DateTime(2000, 1, 1); 
     }
 
     final DateTime? pickedDate = await showDatePicker(
@@ -62,15 +158,14 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            // Customize date picker theme if needed
             colorScheme: ColorScheme.light(
-              primary: Theme.of(context).colorScheme.primary, // Primary color
-              onPrimary: Colors.white, // Text color on primary color
-              onSurface: Colors.black, // Text color on background
+              primary: AppTheme.kPrimaryColor,
+              onPrimary: Colors.white,
+              onSurface: Colors.black, 
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: AppTheme.kPrimaryColor,
               ),
             ),
           ),
@@ -82,35 +177,50 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
     if (pickedDate != null) {
       final formattedDate = DateFormat('MMMM d, yyyy').format(pickedDate);
       setState(() {
-        dateOfBirth = formattedDate;
         dobController.text = formattedDate;
       });
     }
   }
-  // 🌟 END: Date Picker Logic 🌟
 
   void _startEditing() {
-    nameController.text = name;
-    emailController.text = email;
-    phoneController.text = phone;
-    addressController.text = address;
-    dobController.text =
-        dateOfBirth; // Initialize controller with current value
     setState(() => isEditing = true);
   }
 
-  void _saveChanges() {
-    setState(() {
-      name = nameController.text;
-      email = emailController.text;
-      phone = phoneController.text;
-      address = addressController.text;
-      dateOfBirth = dobController.text;
-      isEditing = false;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile updated successfully!')),
-    );
+  Future<void> _saveChanges() async {
+    setState(() => _isSaving = true);
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception("User not logged in");
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .set({
+        'name': nameController.text,
+        'email': emailController.text, 
+        'phone': phoneController.text,
+        'address': addressController.text,
+        'dob': dobController.text,
+      }, SetOptions(merge: true)); 
+
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully!')),
+        );
+      }
+      setState(() => isEditing = false);
+
+    } catch (e) {
+       if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save profile: ${e.toString()}')),
+        );
+       }
+    } finally {
+       if(mounted) {
+        setState(() => _isSaving = false);
+       }
+    }
   }
 
   @override
@@ -132,8 +242,9 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final primaryColor = theme.colorScheme.primary;
+    // 💡 FIX: 'theme' is defined here
+    final theme = Theme.of(context); 
+    final primaryColor = AppTheme.kPrimaryColor;
 
     return Scaffold(
       appBar: AppBar(
@@ -142,17 +253,21 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        // ✅ FIX: Use pushAndRemoveUntil to reset the stack and go to DashboardPlanner
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () {
-            // This ensures the user lands on the main tab container (DashboardPlanner)
-            // with a clean navigation stack, guaranteeing the tabs load correctly.
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const DashboardPlanner()),
-              (route) => false,
-            );
+            if (isEditing) {
+              setState(() {
+                isEditing = false;
+                _loadProfileData(); 
+              });
+            } else {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const DashboardPlanner()),
+                (route) => false,
+              );
+            }
           },
         ),
         actions: [
@@ -162,81 +277,122 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16.0,
-        ).copyWith(bottom: 72.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            buildProfileHeader(theme, primaryColor),
-            const SizedBox(height: 30),
-            buildSectionTitle('Personal Info'),
-            isEditing ? buildEditableFields() : buildStaticInfo(),
-            const SizedBox(height: 20),
-            buildSectionTitle('Past Events'),
-            buildPastEventsSection(context),
-            const SizedBox(height: 20),
-            if (isEditing)
-              Padding(
-                padding: const EdgeInsets.only(top: 0),
-                child: FilledButton(
-                  onPressed: _saveChanges,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    minimumSize: const Size.fromHeight(50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+      body: _isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+              ).copyWith(bottom: 72.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  buildProfileHeader(theme, primaryColor),
+                  const SizedBox(height: 30),
+                  buildSectionTitle('Personal Info'),
+                  // 💡 FIX: Pass the 'theme' object here
+                  isEditing ? buildEditableFields(theme) : buildStaticInfo(theme),
+                  const SizedBox(height: 20),
+                  buildSectionTitle('Past Events'),
+                  buildPastEventsSection(context), 
+                  const SizedBox(height: 20),
+                  if (isEditing)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 0),
+                      child: FilledButton(
+                        onPressed: _isSaving ? null : _saveChanges,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          minimumSize: const Size.fromHeight(50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: _isSaving
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 3,
+                              ),
+                            )
+                          : const Text(
+                            'Save Changes',
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                      ),
                     ),
-                  ),
-                  child: const Text(
-                    'Save Changes',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                ),
+                ],
               ),
-          ],
-        ),
-      ),
+            ),
     );
   }
 
   Widget buildProfileHeader(ThemeData theme, Color primaryColor) {
     final Function()? onAvatarTap = isEditing ? _pickImage : null;
 
+    ImageProvider displayImage;
+    if (_selectedImage != null) {
+      displayImage = FileImage(_selectedImage!);
+    } else if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
+      displayImage = NetworkImage(_profileImageUrl!);
+    } else {
+      displayImage = const AssetImage('assets/images/default.jpg');
+    }
+
     return Center(
       child: Column(
         children: [
           GestureDetector(
             onTap: onAvatarTap,
-            child: Container(
-              width: 128,
-              height: 128,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: primaryColor, width: 4),
-                image: DecorationImage(
-                  fit: BoxFit.cover,
-                  image: _selectedImage != null
-                      ? FileImage(_selectedImage!) as ImageProvider
-                      : const AssetImage(_defaultAvatarPath),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 128,
+                  height: 128,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: primaryColor, width: 4),
+                    image: DecorationImage(
+                      fit: BoxFit.cover,
+                      image: displayImage,
+                      onError: (exception, stackTrace) {
+                        if (mounted) {
+                          setState(() {
+                            _profileImageUrl = null;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                  child: isEditing
+                      ? Center(
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 40,
+                            ),
+                          ),
+                        )
+                      : null,
                 ),
-              ),
-              child: isEditing
-                  ? Center(
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          color: Colors.black54,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          color: Colors.white,
-                          size: 40,
-                        ),
-                      ),
-                    )
-                  : null,
+                if (_isSaving && isEditing)
+                  Container(
+                    width: 128,
+                    height: 128,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const CircularProgressIndicator(color: Colors.white),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
@@ -256,7 +412,10 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
           if (!isEditing)
             FilledButton(
               onPressed: _startEditing,
-              style: FilledButton.styleFrom(backgroundColor: primaryColor),
+              style: FilledButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white
+              ),
               child: const Text(
                 'Edit Profile',
                 style: TextStyle(color: Colors.white),
@@ -277,21 +436,22 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
     );
   }
 
-  Widget buildStaticInfo() {
+  // 💡 FIX: Pass 'theme'
+  Widget buildStaticInfo(ThemeData theme) {
     return Column(
       children: [
-        buildInfoCardTile(Icons.person, 'Name', name),
-        buildInfoCardTile(Icons.phone, 'Phone', phone),
-        buildInfoCardTile(Icons.email, 'Email', email),
-        buildInfoCardTile(Icons.account_circle, 'User Type', userType),
-        buildInfoCardTile(Icons.cake, 'Date of Birth', dateOfBirth),
-        buildInfoCardTile(Icons.home_mini, 'Address', address),
+        buildInfoCardTile(theme, Icons.person, 'Name', name),
+        buildInfoCardTile(theme, Icons.phone, 'Phone', phone.isEmpty ? 'Not set' : phone),
+        buildInfoCardTile(theme, Icons.email, 'Email', email),
+        buildInfoCardTile(theme, Icons.account_circle, 'User Type', userType),
+        buildInfoCardTile(theme, Icons.cake, 'Date of Birth', dateOfBirth.isEmpty ? 'Not set' : dateOfBirth),
+        buildInfoCardTile(theme, Icons.home_mini, 'Address', address.isEmpty ? 'Not set' : address),
       ],
     );
   }
 
-  Widget buildInfoCardTile(IconData icon, String label, String value) {
-    final theme = Theme.of(context);
+  // 💡 FIX: Pass 'theme'
+  Widget buildInfoCardTile(ThemeData theme, IconData icon, String label, String value) {
     final primaryColor = theme.colorScheme.primary;
 
     return Padding(
@@ -339,70 +499,106 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
     );
   }
 
-  Widget buildEditableFields() {
-    return Column(
-      children: [
-        textField(
-          Icons.person,
-          'Full Name',
-          nameController,
-          isDateField: false,
-        ),
-        textField(Icons.email, 'Email', emailController, isDateField: false),
-        textField(Icons.phone, 'Phone', phoneController, isDateField: false),
-        // Date of Birth field now calls the date picker
-        textField(
-          Icons.cake,
-          'Date of Birth',
-          dobController,
-          isDateField: true,
-        ),
-        textField(
-          Icons.home_mini,
-          'Address',
-          addressController,
-          isDateField: false,
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6.0),
-          child: buildInfoCardTile(Icons.account_circle, 'User Type', userType),
-        ),
-      ],
+  // 💡 FIX: Pass 'theme'
+  Widget buildEditableFields(ThemeData theme) {
+    return Form(
+      child: Column(
+        children: [
+          textField(
+            theme, // 💡 FIX: Pass theme
+            Icons.person,
+            'Full Name',
+            nameController,
+            isDateField: false,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter your name';
+              }
+              return null;
+            },
+          ),
+          textField(
+            theme, // 💡 FIX: Pass theme
+            Icons.email, 
+            'Email', 
+            emailController, 
+            isDateField: false,
+            readOnly: true, 
+          ),
+          textField(theme, Icons.phone, 'Phone', phoneController, isDateField: false), // 💡 FIX: Pass theme
+          textField(
+            theme, // 💡 FIX: Pass theme
+            Icons.cake,
+            'Date of Birth',
+            dobController,
+            isDateField: true,
+          ),
+          textField(
+            theme, // 💡 FIX: Pass theme
+            Icons.home_mini,
+            'Address',
+            addressController,
+            isDateField: false,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6.0),
+            // 💡 FIX: Pass theme
+            child: buildInfoCardTile(theme, Icons.account_circle, 'User Type', userType),
+          ),
+        ],
+      ),
     );
   }
 
-  // 🌟 UPDATED: Added isDateField parameter to conditionally add onTap behavior
+  // 💡 FIX: Add 'theme' parameter and use it
   Widget textField(
+    ThemeData theme,
     IconData icon,
     String label,
     TextEditingController controller, {
     required bool isDateField,
+    bool readOnly = false,
+    String? Function(String?)? validator,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: TextField(
+      child: TextFormField(
         controller: controller,
-        readOnly: isDateField, // Makes DOB field read-only to force date picker
-        onTap: isDateField ? _selectDate : null, // Opens date picker on tap
+        readOnly: isDateField || readOnly,
+        onTap: isDateField ? _selectDate : null,
+        // 💡 FIX: Use theme
+        style: TextStyle(color: readOnly ? Colors.grey : theme.colorScheme.onSurface),
         decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: Theme.of(context).colorScheme.primary),
+          // 💡 FIX: Use theme
+          prefixIcon: Icon(icon, color: theme.colorScheme.primary),
           labelText: label,
+          // 💡 FIX: Use theme
+          labelStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7)),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            // 💡 FIX: Use theme
+            borderSide: BorderSide(color: theme.colorScheme.primary, width: 2)
+          ),
+          filled: readOnly,
+          fillColor: readOnly ? Colors.grey.withOpacity(0.1) : null,
           contentPadding: const EdgeInsets.symmetric(
             vertical: 16,
             horizontal: 16,
           ),
         ),
+        validator: validator,
       ),
     );
   }
 
+  // This section remains hardcoded
   Widget buildPastEventsSection(BuildContext context) {
     final events = [
       {
         'title': 'Elegant Wedding',
         'date': '12/12/2023',
-        'image': _pastEvent1,
+        'image': 'assets/images/eventwedding.jpg',
         'description':
             'A royal wedding ceremony with floral decorations and a grand banquet.',
         'venue': 'Royal Palace Banquet Hall, Mumbai',
@@ -411,7 +607,7 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
       {
         'title': 'Corporate Gala',
         'date': '11/15/2023',
-        'image': _pastEvent2,
+        'image': 'assets/images/gala.jpg',
         'description':
             'An elegant corporate evening with awards and networking opportunities.',
         'venue': 'Grand Hyatt, Pune',
@@ -420,7 +616,7 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
       {
         'title': 'Birthday Bash',
         'date': '10/20/2023',
-        'image': _pastEvent3,
+        'image': 'assets/images/birthday.jpg',
         'description':
             'A fun and vibrant birthday party with themed decorations and activities.',
         'venue': 'Skyline Rooftop Lounge, Pune',
@@ -429,7 +625,7 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
       {
         'title': 'Product Launch',
         'date': '09/01/2023',
-        'image': _pastEvent4,
+        'image': 'assets/images/product.jpg',
         'description':
             'A product launch event with media coverage, presentations, and demos.',
         'venue': 'Tech Park Convention Center, Bengaluru',
@@ -462,7 +658,12 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
                       borderRadius: BorderRadius.circular(8),
                       child: AspectRatio(
                         aspectRatio: 3 / 4,
-                        child: Image.asset(e['image']!, fit: BoxFit.cover),
+                        child: Image.asset(e['image']!, fit: BoxFit.cover,
+                          errorBuilder: (ctx, err, stack) => Container(
+                            color: Colors.grey.shade300,
+                            child: const Icon(Icons.image_not_supported),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -490,7 +691,7 @@ class _ProfilePlannerScreenState extends State<ProfilePlanner> {
   }
 }
 
-// New screen to show event details (Remains unchanged)
+// This is the hardcoded detail screen for past events
 class EventDetailScreen extends StatelessWidget {
   final Map<String, String> event;
 
@@ -505,7 +706,13 @@ class EventDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Image.asset(event['image']!, fit: BoxFit.cover),
+            Image.asset(event['image']!, fit: BoxFit.cover,
+              errorBuilder: (ctx, err, stack) => Container(
+                height: 200,
+                color: Colors.grey.shade300,
+                child: const Icon(Icons.image_not_supported, size: 50),
+              ),
+            ),
             const SizedBox(height: 16),
             Text(
               'Date: ${event['date']!}',

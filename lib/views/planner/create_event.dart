@@ -1,7 +1,14 @@
+// lib/views/planner/create_event.dart
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:eventtoria/config/app_theme.dart'; // 💡 IMPORTED THEME
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:dotted_border/dotted_border.dart'; // <--- NEW IMPORT
+import 'package:dotted_border/dotted_border.dart';
 import 'dart:io';
+import 'package:path/path.dart' as p; // For getting file extension
 
 class CreateEventPage extends StatefulWidget {
   const CreateEventPage({super.key});
@@ -11,6 +18,7 @@ class CreateEventPage extends StatefulWidget {
 }
 
 class _CreateEventPageState extends State<CreateEventPage> {
+  final _formKey = GlobalKey<FormState>(); // 💡 ADDED FORM KEY
   final TextEditingController eventNameController = TextEditingController();
   final TextEditingController dateController = TextEditingController();
   final TextEditingController timeController = TextEditingController();
@@ -20,6 +28,109 @@ class _CreateEventPageState extends State<CreateEventPage> {
 
   List<File> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
+  bool _isLoading = false; // 💡 ADDED LOADING STATE
+
+  // 💡 --- NEW FUNCTION: Upload images to Firebase Storage ---
+  Future<List<String>> _uploadImages(String eventId) async {
+    List<String> downloadUrls = [];
+    final storageRef = FirebaseStorage.instance.ref();
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return [];
+
+    for (var i = 0; i < _selectedImages.length; i++) {
+      try {
+        final file = _selectedImages[i];
+        final fileExtension = p.extension(file.path);
+        // Create a unique path for each image
+        final imageRef = storageRef
+            .child('event_images/$eventId/image_${DateTime.now().millisecondsSinceEpoch}_$i$fileExtension');
+
+        UploadTask uploadTask = imageRef.putFile(file);
+        TaskSnapshot snapshot = await uploadTask;
+        String downloadUrl = await snapshot.ref.getDownloadURL();
+        downloadUrls.add(downloadUrl);
+      } catch (e) {
+        print("Error uploading image: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error uploading image: ${e.toString()}')),
+        );
+      }
+    }
+    return downloadUrls;
+  }
+
+  // 💡 --- NEW FUNCTION: Save event to Firestore ---
+  Future<void> _createEvent() async {
+    // 1. Validate the form
+    if (!_formKey.currentState!.validate()) {
+      return; // Stop if form is invalid
+    }
+
+    // 2. Check if images are selected
+    if (_selectedImages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please upload at least one image.')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception("User not logged in.");
+      }
+
+      // 3. Create a new event document reference to get an ID
+      DocumentReference eventRef =
+          FirebaseFirestore.instance.collection('events').doc();
+
+      // 4. Upload images to Storage and get their URLs
+      List<String> imageUrls = await _uploadImages(eventRef.id);
+
+      if (imageUrls.isEmpty) {
+        throw Exception("Image upload failed. Event not created.");
+      }
+
+      // 5. Save all event data to the Firestore document
+      await eventRef.set({
+        'eventId': eventRef.id,
+        'plannerId': user.uid,
+        'eventName': eventNameController.text.trim(),
+        'date': dateController.text.trim(),
+        'time': timeController.text.trim(),
+        'venue': venueController.text.trim(),
+        'budget': double.tryParse(budgetController.text.trim()) ?? 0.0,
+        'guestCount': int.tryParse(guestCountController.text.trim()) ?? 0,
+        'imageUrls': imageUrls, // Save the list of URLs
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Event "${eventNameController.text}" created successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      if (mounted) {
+        Navigator.pop(context); // Go back after success
+      }
+
+    } catch (e) {
+      print("Error creating event: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to create event: ${e.toString()}')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // --- Image & Date/Time Picker Logic (Unchanged) ---
 
   Future<void> _pickImages() async {
     final List<XFile>? pickedFiles = await _picker.pickMultiImage();
@@ -68,15 +179,18 @@ class _CreateEventPageState extends State<CreateEventPage> {
     super.dispose();
   }
 
+  // 💡 --- UPDATED _buildTextField to be a TextFormField ---
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
+    String? validatorText, // 💡 ADDED for validation
     TextInputType keyboardType = TextInputType.text,
     bool readOnly = false,
     VoidCallback? onTap,
     Widget? suffixIcon,
   }) {
-    return TextField(
+    // 💡 Converted to TextFormField
+    return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       readOnly: readOnly,
@@ -110,6 +224,13 @@ class _CreateEventPageState extends State<CreateEventPage> {
         ),
         suffixIcon: suffixIcon,
       ),
+      // 💡 ADDED VALIDATOR
+      validator: (value) {
+        if (validatorText != null && (value == null || value.isEmpty)) {
+          return validatorText;
+        }
+        return null;
+      },
     );
   }
 
@@ -167,7 +288,8 @@ class _CreateEventPageState extends State<CreateEventPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final primaryColor = theme.colorScheme.primary;
+    // 💡 USING THEME from app_theme.dart
+    final primaryColor = AppTheme.kPrimaryColor;
 
     return Scaffold(
       appBar: AppBar(
@@ -181,256 +303,269 @@ class _CreateEventPageState extends State<CreateEventPage> {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Event Name
-            buildSectionTitle('Event Name'),
-            const SizedBox(height: 8.0),
-            _buildTextField(
-              controller: eventNameController,
-              hintText: 'e.g., Sarah\'s Birthday Bash',
-            ),
-            const SizedBox(height: 24.0),
+      // 💡 WRAPPED IN Form
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Event Name
+              buildSectionTitle('Event Name'),
+              const SizedBox(height: 8.0),
+              _buildTextField(
+                controller: eventNameController,
+                hintText: 'e.g., Sarah\'s Birthday Bash',
+                validatorText: 'Please enter an event name', // 💡 ADDED
+              ),
+              const SizedBox(height: 24.0),
 
-            // Date & Time
-            buildSectionTitle('Date & Time'),
-            const SizedBox(height: 8.0),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    controller: dateController,
-                    hintText: 'mm/dd/yyyy',
-                    readOnly: true,
-                    onTap: _selectDate,
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        Icons.calendar_today,
-                        color: primaryColor.withOpacity(0.7),
-                      ),
-                      onPressed: _selectDate,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8.0),
-                Expanded(
-                  child: _buildTextField(
-                    controller: timeController,
-                    hintText: '-:--',
-                    readOnly: true,
-                    onTap: _selectTime,
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        Icons.access_time,
-                        color: primaryColor.withOpacity(0.7),
-                      ),
-                      onPressed: _selectTime,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24.0),
-
-            // Venue
-            buildSectionTitle('Venue'),
-            const SizedBox(height: 8.0),
-            _buildTextField(
-              controller: venueController,
-              hintText: 'e.g., The Grand Ballroom',
-            ),
-            const SizedBox(height: 24.0),
-
-            // Budget & Guest Count
-            buildSectionTitle('Budget & Guest Count'),
-            const SizedBox(height: 8.0),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    controller: budgetController,
-                    hintText: '₹500,000',
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-                const SizedBox(width: 8.0),
-                Expanded(
-                  child: _buildTextField(
-                    controller: guestCountController,
-                    hintText: '250',
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24.0),
-
-            // Upload Images
-            buildSectionTitle('Upload Images'),
-            const SizedBox(height: 8.0),
-
-            // --- FIXED BLOCK: Using DottedBorder package ---
-            GestureDetector(
-              onTap: _pickImages,
-              child: DottedBorder(
-                borderType: BorderType.RRect,
-                radius: const Radius.circular(12),
-                padding: const EdgeInsets.all(0),
-                dashPattern: const [8, 4], // Dash pattern for dashed effect
-                color: primaryColor, // Primary color for the dash lines
-                strokeWidth: 1.5,
-                child: Container(
-                  width: double.infinity,
-                  height: 180,
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceVariant.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.cloud_upload_outlined,
-                          size: 48,
-                          color: primaryColor,
+              // Date & Time
+              buildSectionTitle('Date & Time'),
+              const SizedBox(height: 8.0),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: dateController,
+                      hintText: 'mm/dd/yyyy',
+                      readOnly: true,
+                      onTap: _selectDate,
+                      validatorText: 'Please select a date', // 💡 ADDED
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          Icons.calendar_today,
+                          color: primaryColor.withOpacity(0.7),
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Click to upload or drag and drop',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                        onPressed: _selectDate,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8.0),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: timeController,
+                      hintText: '-:--',
+                      readOnly: true,
+                      onTap: _selectTime,
+                      validatorText: 'Please select a time', // 💡 ADDED
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          Icons.access_time,
+                          color: primaryColor.withOpacity(0.7),
+                        ),
+                        onPressed: _selectTime,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24.0),
+
+              // Venue
+              buildSectionTitle('Venue'),
+              const SizedBox(height: 8.0),
+              _buildTextField(
+                controller: venueController,
+                hintText: 'e.g., The Grand Ballroom',
+                validatorText: 'Please enter a venue', // 💡 ADDED
+              ),
+              const SizedBox(height: 24.0),
+
+              // Budget & Guest Count
+              buildSectionTitle('Budget & Guest Count'),
+              const SizedBox(height: 8.0),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: budgetController,
+                      hintText: '₹500,000',
+                      keyboardType: TextInputType.number,
+                      validatorText: 'Please enter a budget', // 💡 ADDED
+                    ),
+                  ),
+                  const SizedBox(width: 8.0),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: guestCountController,
+                      hintText: '250',
+                      keyboardType: TextInputType.number,
+                      validatorText: 'Please enter guest count', // 💡 ADDED
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24.0),
+
+              // Upload Images
+              buildSectionTitle('Upload Images'),
+              const SizedBox(height: 8.0),
+
+              // DottedBorder
+              GestureDetector(
+                onTap: _pickImages,
+                child: DottedBorder(
+                  borderType: BorderType.RRect,
+                  radius: const Radius.circular(12),
+                  padding: const EdgeInsets.all(0),
+                  dashPattern: const [8, 4],
+                  color: primaryColor, // 💡 USING THEME
+                  strokeWidth: 1.5,
+                  child: Container(
+                    width: double.infinity,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceVariant.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.cloud_upload_outlined,
+                            size: 48,
+                            color: primaryColor, // 💡 USING THEME
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'SVG, PNG, JPG or GIF (MAX. 800x400px)',
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Click to upload or drag and drop',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'SVG, PNG, JPG or GIF (MAX. 800x400px)',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
 
-            // --- END FIXED BLOCK ---
-            _selectedImages.isNotEmpty
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 16.0),
-                    child: SizedBox(
-                      height: 100,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _selectedImages.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
-                            child: Stack(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.file(
-                                    _selectedImages[index],
-                                    width: 100,
-                                    height: 100,
-                                    fit: BoxFit.cover,
+              // Image Preview List
+              _selectedImages.isNotEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: 16.0),
+                      child: SizedBox(
+                        height: 100,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _selectedImages.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.file(
+                                      _selectedImages[index],
+                                      width: 100,
+                                      height: 100,
+                                      fit: BoxFit.cover,
+                                    ),
                                   ),
-                                ),
-                                Positioned(
-                                  top: 0,
-                                  right: 0,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedImages.removeAt(index);
-                                      });
-                                    },
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.black54,
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: const Icon(
-                                        Icons.close,
-                                        color: Colors.white,
-                                        size: 20,
+                                  Positioned(
+                                    top: 0,
+                                    right: 0,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedImages.removeAt(index);
+                                        });
+                                      },
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.black54,
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                        child: const Icon(
+                                          Icons.close,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                                ],
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  )
-                : const SizedBox.shrink(),
-            const SizedBox(height: 24.0),
+                    )
+                  : const SizedBox.shrink(),
+              const SizedBox(height: 24.0),
 
-            // AI Suggestions
-            buildSectionTitle('AI Suggestions'),
-            const SizedBox(height: 8.0),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildAISuggestionButton(
-                    context,
-                    label: 'Suggest Themes',
-                    icon: Icons.auto_awesome,
-                  ),
-                ),
-                const SizedBox(width: 12.0),
-                Expanded(
-                  child: _buildAISuggestionButton(
-                    context,
-                    label: 'Suggest Tasks',
-                    icon: Icons.lightbulb_outline,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 40.0),
-
-            // Create Event Button
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Creating event: ${eventNameController.text}',
-                      ),
+              // AI Suggestions
+              buildSectionTitle('AI Suggestions'),
+              const SizedBox(height: 8.0),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildAISuggestionButton(
+                      context,
+                      label: 'Suggest Themes',
+                      icon: Icons.auto_awesome,
                     ),
-                  );
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0),
                   ),
-                ),
-                child: const Text(
-                  'Create Event',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                  const SizedBox(width: 12.0),
+                  Expanded(
+                    child: _buildAISuggestionButton(
+                      context,
+                      label: 'Suggest Tasks',
+                      icon: Icons.lightbulb_outline,
+                    ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 40.0),
+
+              // Create Event Button
+              SizedBox(
+                width: double.infinity,
+                // 💡 UPDATED BUTTON with loading state
+                child: FilledButton(
+                  onPressed: _isLoading ? null : _createEvent, // 💡 UPDATED
+                  style: FilledButton.styleFrom(
+                    backgroundColor: primaryColor, // 💡 USING THEME
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                  ),
+                  child: _isLoading // 💡 ADDED LOADING INDICATOR
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 3,
+                          ),
+                        )
+                      : const Text(
+                          'Create Event',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16.0),
-          ],
+              const SizedBox(height: 16.0),
+            ],
+          ),
         ),
       ),
     );

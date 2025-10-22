@@ -1,3 +1,5 @@
+// lib/views/planner/chat_detail_screen.dart
+
 import 'package:eventtoria/views/planner/planner_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -8,8 +10,16 @@ const Color kAccentPurple = Color(0xFFA564E9);
 const Color kBackgroundDark = Color(0xFF100819);
 const Color kCardDarkColor = Color(0xFF1E122D);
 
-class ChatScreen extends StatelessWidget {
-  const ChatScreen({super.key});
+// ✅ --- FIX: Renamed class and added parameters ---
+class ChatDetailScreen extends StatelessWidget {
+  final String vendorId;
+  final String vendorName;
+
+  const ChatDetailScreen({
+    super.key,
+    required this.vendorId,
+    required this.vendorName,
+  });
 
   static const String vendorAvatar = 'assets/images/atharva.jpg';
   static const String plannerAvatar = 'assets/images/varad.jpg';
@@ -29,7 +39,6 @@ class ChatScreen extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          // ✅ IMPLEMENTED FIX: Use pushAndRemoveUntil to reset to DashboardPlanner
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
             onPressed: () {
@@ -42,18 +51,19 @@ class ChatScreen extends StatelessWidget {
               );
             },
           ),
-          title: const Column(
+          // ✅ --- FIX: Use vendorName variable ---
+          title: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                'Rhythm & Hues',
-                style: TextStyle(
+                vendorName, // Use the passed-in vendorName
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                   color: Colors.white,
                 ),
               ),
-              Row(
+              const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.circle, color: Colors.green, size: 8),

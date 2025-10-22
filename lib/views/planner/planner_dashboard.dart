@@ -1,9 +1,14 @@
+// lib/views/planner/planner_dashboard.dart
+
+import 'package:eventtoria/config/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'profile_planner.dart';
 import 'notification_screen.dart';
-import 'chat_screen.dart';
-import 'event_details.dart';
+// 💡 UPDATED IMPORTS
+import 'chat_list_screen.dart'; // 💡 NEW: Lists confirmed chats
+import 'bookings_screen.dart'; // 💡 NEW: Lists all bookings
+import 'event_details.dart'; // This is now used as a placeholder
 import 'create_event.dart';
 import 'eventoria_ai_screen.dart';
 import 'vendor_screen.dart';
@@ -17,11 +22,11 @@ void _openNotifications(BuildContext context) {
 }
 
 // ===================================================
-// 1. HOME CONTENT WIDGET (PlannerDashboard)
+// 1. HOME CONTENT WIDGET (PlannerHome)
 // ===================================================
 
-class PlannerDashboard extends StatelessWidget {
-  const PlannerDashboard({super.key});
+class PlannerHome extends StatelessWidget {
+  const PlannerHome({super.key});
 
   Widget buildSectionTitle(String title, ThemeData theme) {
     return Text(
@@ -31,6 +36,7 @@ class PlannerDashboard extends StatelessWidget {
   }
 
   Widget buildUpcomingEvents(BuildContext context, ThemeData theme) {
+    // This data is hardcoded for the demo
     final events = [
       {
         'title': 'Grand Wedding Reception',
@@ -50,15 +56,7 @@ class PlannerDashboard extends StatelessWidget {
         'venue': 'Skyline Rooftop Lounge, Pune',
         'organizer': 'DreamPlanners Co.',
       },
-      {
-        'title': 'Annual Tech Conference',
-        'date': 'December 5, 2024',
-        'image': 'assets/images/annual_tech.jpg',
-        'description':
-            'An annual gathering of innovators and entrepreneurs featuring keynote speakers, product showcases, and networking opportunities.',
-        'venue': 'Tech Park Convention Center, Bengaluru',
-        'organizer': 'Innovate India Group',
-      },
+      // ... other events
     ];
 
     return SizedBox(
@@ -97,6 +95,12 @@ class PlannerDashboard extends StatelessWidget {
                       height: 120,
                       width: 160,
                       fit: BoxFit.cover,
+                      errorBuilder: (ctx, err, stack) => Container(
+                        height: 120,
+                        width: 160,
+                        color: Colors.grey.shade300,
+                        child: const Icon(Icons.image_not_supported),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -196,7 +200,6 @@ class PlannerDashboard extends StatelessWidget {
   }
 
   Widget buildAISuggestions(BuildContext context, ThemeData theme) {
-    // 🌟 FIX 1: Updated 'image' keys to use local asset paths
     final suggestions = [
       {
         'title': 'Top Vendor Picks',
@@ -229,7 +232,6 @@ class PlannerDashboard extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    // 🌟 FIX 2: Replaced Image.network with Image.asset 🌟
                     child: Image.asset(
                       s['image']!,
                       height: 80,
@@ -389,29 +391,32 @@ class DashboardPlanner extends StatefulWidget {
 
 class _DashboardPlannerState extends State<DashboardPlanner> {
   int selectedIndex = 0;
-  final String currentEventName = "Annual Tech Conference";
+  final String currentEventName = "Annual Tech Conference"; // Example event name
 
-  final List<Widget> _widgetOptions;
+  // 💡 WIDGET OPTIONS UPDATED
+  late final List<Widget> _widgetOptions;
 
-  _DashboardPlannerState()
-    : _widgetOptions = <Widget>[
-        const PlannerDashboard(), // Index 0: Home
-        VendorsScreen(eventName: "Annual Tech Conference"), // Index 1: Vendors
-        const EventDetailsPage(), // Index 2: Bookings (Placeholder)
-        const ChatScreen(), // Index 3: Chat
-        const ProfilePlanner(), // Index 4: Profile
-      ];
+  _DashboardPlannerState() {
+    _widgetOptions = <Widget>[
+      const PlannerHome(), // Index 0: Home
+      VendorsScreen(eventName: currentEventName), // Index 1: Vendors
+      const BookingsScreen(), // Index 2: Bookings (💡 NEW)
+      const ChatListScreen(), // Index 3: Chat (💡 NEW)
+      const ProfilePlanner(), // Index 4: Profile
+    ];
+  }
 
   Future<bool> _onWillPop() async {
     if (selectedIndex == 0) {
       // Exit app only if on the Home tab
       await SystemNavigator.pop();
     } else {
+      // If on another tab, go back to Home
       setState(() {
         selectedIndex = 0;
       });
     }
-    return false;
+    return false; // Prevent default pop behavior
   }
 
   void _onItemTapped(int index) {
@@ -427,19 +432,40 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
-        // ✅ FIX: Use IndexedStack to only show the selected page's content
+        // Use IndexedStack to keep the state of each tab alive
         body: IndexedStack(index: selectedIndex, children: _widgetOptions),
+        
         bottomNavigationBar: NavigationBar(
+          // Apply theme colors
           backgroundColor: theme.scaffoldBackgroundColor,
+          indicatorColor: theme.colorScheme.primary.withOpacity(0.2),
+          
           destinations: const [
-            NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
-            NavigationDestination(icon: Icon(Icons.groups), label: 'Vendors'),
             NavigationDestination(
-              icon: Icon(Icons.calendar_month),
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home), 
+              label: 'Home'
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.groups_outlined),
+              selectedIcon: Icon(Icons.groups), 
+              label: 'Vendors'
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.calendar_month_outlined),
+              selectedIcon: Icon(Icons.calendar_month),
               label: 'Bookings',
             ),
-            NavigationDestination(icon: Icon(Icons.chat), label: 'Chat'),
-            NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
+            NavigationDestination(
+              icon: Icon(Icons.chat_bubble_outline),
+              selectedIcon: Icon(Icons.chat_bubble), 
+              label: 'Chat'
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person), 
+              label: 'Profile'
+            ),
           ],
           selectedIndex: selectedIndex,
           onDestinationSelected: _onItemTapped,
@@ -478,7 +504,7 @@ class EventInfoPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        backgroundColor: theme.colorScheme.primary,
+        backgroundColor: theme.colorScheme.primary, // Apply theme color
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -488,7 +514,15 @@ class EventInfoPage extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.asset(image, fit: BoxFit.cover),
+              child: Image.asset(
+                image, 
+                fit: BoxFit.cover,
+                errorBuilder: (ctx, err, stack) => Container(
+                  height: 200,
+                  color: Colors.grey.shade300,
+                  child: const Icon(Icons.image_not_supported, size: 50),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             Text(
