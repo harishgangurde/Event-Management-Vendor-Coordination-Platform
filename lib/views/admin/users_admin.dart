@@ -16,6 +16,11 @@ class _AdminUsersState extends State<AdminUsers> {
   final Color backgroundDark = const Color(0xFF190F23);
   final Color primary = const Color(0xFF7F06F9);
 
+  // --- *** FIXES ARE HERE *** ---
+  final Color cardDark = const Color(0xFF1F1A30); // 1. ADDED THIS LINE
+  final Color textDarkColor = Colors.grey[400]!; // 2. MOVED THIS LINE UP
+  // --- *** END OF FIXES *** ---
+
   bool isDarkMode = false;
   String selectedTab = "Planners"; // Default tab
   String _searchQuery = "";
@@ -24,23 +29,151 @@ class _AdminUsersState extends State<AdminUsers> {
   Stream<QuerySnapshot> _getUsersStream() {
     Query query = FirebaseFirestore.instance.collection('users');
 
+    // Filter by role based on the selected tab
+    String role = selectedTab.substring(
+      0,
+      selectedTab.length - 1,
+    ); // "Planners" -> "Planner"
+    query = query.where('role', isEqualTo: role);
+
     if (_searchQuery.isNotEmpty) {
-      // Basic search by name (case-insensitive is tricky without 3rd party)
+      // Basic prefix search by name
       query = query
           .where('name', isGreaterThanOrEqualTo: _searchQuery)
           .where('name', isLessThanOrEqualTo: '$_searchQuery\uf8ff');
     }
-    
-    // Always filter by role based on the selected tab
-    query = query.where('role', isEqualTo: selectedTab.substring(0, selectedTab.length - 1)); // "Planners" -> "Planner"
 
     return query.snapshots();
+  }
+
+  // --- NEW FUNCTION: Update User Status ---
+  Future<void> _updateUserStatus(
+    String uid,
+    String name,
+    String newStatus,
+  ) async {
+    if (!mounted) return;
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+        'status': newStatus,
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$name is now $newStatus'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update status: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // --- NEW FUNCTION: Delete User ---
+  Future<void> _deleteUser(String uid, String name) async {
+    if (!mounted) return;
+    // NOTE: This only deletes the Firestore record.
+    // To delete the Firebase Auth user, you need a Firebase Function.
+    // Deleting from the client SDK is a security risk.
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(uid).delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$name has been deleted'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete user: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // --- NEW FUNCTION: Show options dialog ---
+  void _showUserOptions(BuildContext context, DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final String name = data['name'] ?? 'N/A';
+    final String uid = doc.id;
+    final String currentStatus = data['status'] ?? 'Active';
+    final bool isBanned = currentStatus == 'Banned';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: backgroundDark,
+      builder: (context) {
+        return Wrap(
+          children: [
+            ListTile(
+              leading: Icon(
+                isBanned ? Icons.check_circle : Icons.block,
+                color: isBanned ? Colors.green : Colors.orange,
+              ),
+              title: Text(
+                isBanned
+                    ? 'Re-activate User'
+                    : 'Ban User (Set status to "Banned")',
+                style: TextStyle(color: Colors.white),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                String newStatus = isBanned ? 'Active' : 'Banned';
+                _updateUserStatus(uid, name, newStatus);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete, color: Colors.redAccent),
+              title: Text(
+                'Delete User Record (Firestore)',
+                style: TextStyle(color: Colors.redAccent),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                // Show confirmation dialog before deleting
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: Text('Confirm Delete'),
+                    content: Text(
+                      'Are you sure you want to delete $name? This only removes the Firestore record, not the Auth user.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _deleteUser(uid, name);
+                        },
+                        child: Text(
+                          'Delete',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final Color textDark = Colors.grey[400]!;
+    // final Color textDarkColor = Colors.grey[400]!; // <-- MOVED TO CLASS LEVEL
 
     return Scaffold(
       backgroundColor: isDarkMode ? backgroundDark : backgroundLight,
@@ -68,9 +201,16 @@ class _AdminUsersState extends State<AdminUsers> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
+              style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
               decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: isDarkMode ? Colors.white54 : Colors.black54,
+                ),
                 hintText: "Search users by name...",
+                hintStyle: TextStyle(
+                  color: isDarkMode ? Colors.white54 : Colors.black54,
+                ),
                 filled: true,
                 fillColor: isDarkMode ? Colors.black12 : Colors.grey[200],
                 border: OutlineInputBorder(
@@ -97,13 +237,20 @@ class _AdminUsersState extends State<AdminUsers> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
+                  return Center(
+                    child: Text(
+                      'Error: ${snapshot.error}',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                    ),
+                  );
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return Center(
                     child: Text(
                       'No ${selectedTab.toLowerCase()} found.',
-                      style: TextStyle(color: textDark),
+                      style: TextStyle(color: textDarkColor),
                     ),
                   );
                 }
@@ -119,20 +266,25 @@ class _AdminUsersState extends State<AdminUsers> {
                     final data = doc.data() as Map<String, dynamic>;
 
                     final String name = data['name'] ?? 'N/A';
-                    final String role = data['role'] ?? 'N/A';
+                    // final String role = data['role'] ?? 'N/A'; // No longer needed, we show status
                     final String avatarUrl = data['profileImageUrl'] ?? '';
-                    final String status = data['status'] ?? 'Active'; // Assume 'status' field
+                    final String status =
+                        data['status'] ?? 'Active'; // Assume 'status' field
 
                     Color statusColor;
                     switch (status) {
                       case "Active":
                         statusColor = Colors.green;
                         break;
+                      case "Pending":
+                        statusColor = Colors.yellow[700]!;
+                        break;
+                      case "Banned":
                       case "Inactive":
                         statusColor = Colors.red;
                         break;
                       default:
-                        statusColor = Colors.yellow[700]!;
+                        statusColor = Colors.grey;
                     }
 
                     return ListTile(
@@ -140,11 +292,13 @@ class _AdminUsersState extends State<AdminUsers> {
                         children: [
                           CircleAvatar(
                             radius: 24,
+                            backgroundColor:
+                                cardDark, // <-- *** FIX IS HERE ***
                             backgroundImage: avatarUrl.isNotEmpty
                                 ? NetworkImage(avatarUrl)
                                 : null,
                             child: avatarUrl.isEmpty
-                                ? const Icon(Icons.person)
+                                ? Icon(Icons.person, color: textDarkColor)
                                 : null,
                           ),
                           Positioned(
@@ -175,13 +329,14 @@ class _AdminUsersState extends State<AdminUsers> {
                         ),
                       ),
                       subtitle: Text(
-                        role,
-                        style: TextStyle(color: textDark),
+                        "Status: $status", // Show the status
+                        style: TextStyle(color: textDarkColor),
                       ),
                       trailing: IconButton(
-                        icon: const Icon(Icons.more_vert),
+                        icon: Icon(Icons.more_vert, color: textDarkColor),
                         onPressed: () {
-                          // TODO: Show options like 'Deactivate', 'Delete'
+                          // --- NEW: Show options ---
+                          _showUserOptions(context, doc);
                         },
                       ),
                     );
@@ -201,6 +356,7 @@ class _AdminUsersState extends State<AdminUsers> {
       onTap: () {
         setState(() {
           selectedTab = title;
+          _searchQuery = ""; // Clear search when changing tabs
         });
       },
       child: AnimatedContainer(
@@ -208,9 +364,7 @@ class _AdminUsersState extends State<AdminUsers> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           border: isSelected
-              ? Border(
-                  bottom: BorderSide(width: 2, color: const Color(0xFF7F06F9)),
-                )
+              ? Border(bottom: BorderSide(width: 2, color: primary))
               : null,
         ),
         child: Text(

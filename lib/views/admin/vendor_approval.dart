@@ -1,4 +1,5 @@
 // lib/views/admin/vendor_approval.dart
+// This file is already dynamic and correct.
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +22,7 @@ class _VendorApprovalState extends State<VendorApproval> {
   final Stream<QuerySnapshot> _approvalStream = FirebaseFirestore.instance
       .collection('users')
       .where('role', isEqualTo: 'Vendor')
-      .where('status', isEqualTo: 'Pending') // You must set this on signup
+      .where('status', isEqualTo: 'Pending') // This is the key filter
       .snapshots();
 
   Future<void> _updateVendorStatus(String uid, String name, String newStatus) async {
@@ -38,13 +39,14 @@ class _VendorApprovalState extends State<VendorApproval> {
   }
 
   void _showSnackBar(String vendorName, String action) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
             action == 'error' ? vendorName : "$vendorName has been $action"),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: action == 'approved'
+        backgroundColor: action == 'active' // Match the status string
             ? Colors.green
             : (action == 'rejected' ? Colors.red : Colors.orange),
       ),
@@ -63,7 +65,7 @@ class _VendorApprovalState extends State<VendorApproval> {
             : backgroundLight.withOpacity(0.8),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back, color: isDarkMode ? Colors.white : Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -82,7 +84,7 @@ class _VendorApprovalState extends State<VendorApproval> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(child: Text('Error: ${snapshot.error}', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black)));
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(
@@ -104,15 +106,13 @@ class _VendorApprovalState extends State<VendorApproval> {
               final data = doc.data() as Map<String, dynamic>;
 
               final String name = data['name'] ?? 'N/A';
-              final String category = data['serviceType'] ?? 'N/A'; // Use serviceType
+              final String category = data['serviceType'] ?? 'N/A';
               final String imageUrl = data['profileImageUrl'] ?? '';
-              // final double rating = (data['rating'] as num?)?.toDouble() ?? 0.0;
-              // final int reviews = (data['reviews'] as num?)?.toInt() ?? 0;
 
               return Card(
                 color: isDarkMode
-                    ? backgroundDark.withOpacity(0.5)
-                    : backgroundLight,
+                    ? backgroundDark.withOpacity(0.9)
+                    : Colors.white,
                 margin: const EdgeInsets.only(bottom: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -150,7 +150,7 @@ class _VendorApprovalState extends State<VendorApproval> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  category,
+                                  category.isNotEmpty ? category : "No Category",
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: isDarkMode
@@ -169,16 +169,6 @@ class _VendorApprovalState extends State<VendorApproval> {
                                         : Colors.black,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                // Text(
-                                //   "$rating ($reviews reviews)",
-                                //   style: TextStyle(
-                                //     fontSize: 12,
-                                //     color: isDarkMode
-                                //         ? Colors.grey[400]
-                                //         : Colors.grey[600],
-                                //   ),
-                                // ),
                               ],
                             ),
                           ),
@@ -210,6 +200,7 @@ class _VendorApprovalState extends State<VendorApproval> {
                           Expanded(
                             child: ElevatedButton.icon(
                               onPressed: () {
+                                // You must approve them as 'Active'
                                 _updateVendorStatus(doc.id, name, 'Active');
                               },
                               icon:

@@ -1,7 +1,11 @@
+// lib/views/admin/setting_admin.dart
+// This file is correct as-is. The logout function is dynamic.
+
 import 'package:eventtoria/views/auth/login_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart'; // Import Google Fonts
 
 class AdminSettings extends StatelessWidget {
   const AdminSettings({super.key});
@@ -39,6 +43,7 @@ class AdminSettings extends StatelessWidget {
     );
 
     if (confirm != null && confirm) {
+      if (!context.mounted) return;
       // Sign out from Firebase
       await FirebaseAuth.instance.signOut();
 
@@ -46,6 +51,7 @@ class AdminSettings extends StatelessWidget {
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
 
+      if (!context.mounted) return;
       // Navigate to Login screen
       Navigator.of(context).pushAndRemoveUntil(
         PageRouteBuilder(
@@ -68,6 +74,8 @@ class AdminSettings extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color primary = const Color(0xFF7F06F9);
     final Color backgroundDark = const Color(0xFF190F23);
+    final Color cardDark = const Color(0xFF1F1A30); // Use card color
+
 
     Widget _buildSettingsSection(
       String title,
@@ -76,65 +84,59 @@ class AdminSettings extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title.toUpperCase(),
-            style: TextStyle(
-              color: primary,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(
+              title.toUpperCase(),
+              style: GoogleFonts.plusJakartaSans(
+                color: primary,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-          Column(
-            children: List.generate(items.length, (index) {
-              final item = items[index];
-              return Column(
-                children: [
-                  InkWell(
-                    onTap: item['onTap'],
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 12,
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: cardDark,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: List.generate(items.length, (index) {
+                final item = items[index];
+                return Column(
+                  children: [
+                    ListTile(
+                      onTap: item['onTap'],
+                      leading: Container(
+                        height: 40, // consistent size
+                        width: 40,
+                        decoration: BoxDecoration(
+                          color: primary.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(item['icon'], color: primary, size: 20),
                       ),
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      decoration: BoxDecoration(
-                        color: backgroundDark.withOpacity(0.85),
-                        borderRadius: BorderRadius.circular(12),
+                      title: Text(
+                        item['title'],
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 15,
+                        ),
                       ),
-                      child: Row(
-                        children: [
-                          Container(
-                            height: 45,
-                            width: 45,
-                            decoration: BoxDecoration(
-                              color: primary.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Icon(item['icon'], color: primary),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              item['title'],
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          const Icon(Icons.chevron_right, color: Colors.grey),
-                        ],
-                      ),
+                      trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
                     ),
-                  ),
-                  if (index != items.length - 1)
-                    Divider(color: Colors.grey[800], height: 1),
-                ],
-              );
-            }),
+                    if (index != items.length - 1)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 68.0), // Align with title
+                        child: Divider(color: Colors.grey[800], height: 1),
+                      ),
+                  ],
+                );
+              }),
+            ),
           ),
           const SizedBox(height: 16),
         ],
@@ -142,100 +144,96 @@ class AdminSettings extends StatelessWidget {
     }
 
     return Scaffold(
-      body: Container(
-        color: backgroundDark,
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: ListView(
-              children: [
-                const SizedBox(height: 8),
-                const Center(
-                  child: Text(
-                    'Settings',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                _buildSettingsSection('Platform Configuration', [
-                  {
-                    'title': 'User Management',
-                    'icon': Icons.group,
-                    'onTap': () {},
-                  },
-                  {
-                    'title': 'System Alerts & Logs',
-                    'icon': Icons.dvr,
-                    'onTap': () {},
-                  },
-                ]),
-                _buildSettingsSection('Notification Preferences', [
-                  {
-                    'title': 'New Registrations',
-                    'icon': Icons.person_add,
-                    'onTap': () {},
-                  },
-                  {'title': 'Disputes', 'icon': Icons.flag, 'onTap': () {}},
-                ]),
-                _buildSettingsSection('App Preferences', [
-                  {
-                    'title': 'Theme',
-                    'icon': Icons.brightness_6,
-                    'onTap': () {},
-                  },
-                  {'title': 'Language', 'icon': Icons.language, 'onTap': () {}},
-                ]),
-                _buildSettingsSection('Help & Support', [
-                  {
-                    'title': 'Help Center',
-                    'icon': Icons.help_center,
-                    'onTap': () {},
-                  },
-                  {
-                    'title': 'Contact Support',
-                    'icon': Icons.headset_mic,
-                    'onTap': () {},
-                  },
-                ]),
-                _buildSettingsSection('About', [
-                  {'title': 'About Us', 'icon': Icons.info, 'onTap': () {}},
-                ]),
-                const SizedBox(height: 24),
-
-                // Logout Button
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 0),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () => _logout(context),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: primary,
-                        side: BorderSide(color: primary, width: 1.5),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Logout',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ],
-            ),
+      backgroundColor: backgroundDark,
+      appBar: AppBar(
+        backgroundColor: backgroundDark,
+        elevation: 0,
+        centerTitle: true,
+        automaticallyImplyLeading: false, // No back button on a main tab
+        title: Text(
+          'Settings',
+          style: GoogleFonts.plusJakartaSans(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
           ),
+        ),
+      ),
+      body: SafeArea(
+        child: ListView(
+          children: [
+            const SizedBox(height: 24),
+            _buildSettingsSection('Platform Configuration', [
+              {
+                'title': 'User Management',
+                'icon': Icons.group,
+                'onTap': () {},
+              },
+              {
+                'title': 'System Alerts & Logs',
+                'icon': Icons.dvr,
+                'onTap': () {},
+              },
+            ]),
+            _buildSettingsSection('Notification Preferences', [
+              {
+                'title': 'New Registrations',
+                'icon': Icons.person_add,
+                'onTap': () {},
+              },
+              {'title': 'Disputes', 'icon': Icons.flag, 'onTap': () {}},
+            ]),
+            _buildSettingsSection('App Preferences', [
+              {
+                'title': 'Theme',
+                'icon': Icons.brightness_6,
+                'onTap': () {},
+              },
+              {'title': 'Language', 'icon': Icons.language, 'onTap': () {}},
+            ]),
+            _buildSettingsSection('Help & Support', [
+              {
+                'title': 'Help Center',
+                'icon': Icons.help_center,
+                'onTap': () {},
+              },
+              {
+                'title': 'Contact Support',
+                'icon': Icons.headset_mic,
+                'onTap': () {},
+              },
+            ]),
+            const SizedBox(height: 24),
+
+            // Logout Button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _logout(context),
+                  icon: Icon(Icons.logout, color: Colors.redAccent),
+                  label: Text(
+                    'Logout',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.redAccent,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: primary,
+                    side: BorderSide(color: Colors.redAccent.withOpacity(0.5), width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
         ),
       ),
     );

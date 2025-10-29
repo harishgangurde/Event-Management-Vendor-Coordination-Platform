@@ -1,25 +1,22 @@
+// lib/views/admin/analytics_admin.dart
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
 class AdminAnalytics extends StatelessWidget {
   const AdminAnalytics({super.key});
 
+  final Color backgroundDark = const Color(0xFF190F23);
+  final Color cardColor = const Color(0xFF1F1A30);
+  final Color primary = const Color(0xFF7F06F9);
+  final Color secondary = const Color(0xFFA855F7);
+  final Color textLight = Colors.white;
+  final Color textDark = const Color(0xFF9CA3AF);
+
   @override
   Widget build(BuildContext context) {
-    final Color backgroundDark = const Color(0xFF190F23);
-    final Color cardColor = const Color(0xFF1F1A30);
-    final Color primary = const Color(0xFF7F06F9);
-    final Color secondary = const Color(0xFFA855F7);
-    final Color textLight = Colors.white;
-    final Color textDark = const Color(0xFF9CA3AF);
-
-    final double width = MediaQuery.of(context).size.width;
-    final bool isTablet = width >= 600 && width < 1000;
-    final bool isDesktop = width >= 1000;
-
-    // Determine number of columns for grid layout
-    int crossAxisCount = isDesktop ? 2 : isTablet ? 1 : 1;
-
     return Scaffold(
       backgroundColor: backgroundDark,
       appBar: AppBar(
@@ -27,173 +24,144 @@ class AdminAnalytics extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {},
+          // Go back to dashboard (index 0) or pop
+          onPressed: () => Navigator.pop(context), 
         ),
         title: const Text(
           'Analytics & Reports',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: isDesktop ? 1.6 : 1.2,
+        child: Column(
           children: [
+            // User Roles Pie Chart (Dynamic)
             _buildChartCard(
-              title: "Bookings",
+              title: "User Distribution",
               child: SizedBox(
                 height: 200,
-                child: LineChart(
-                  LineChartData(
-                    gridData: FlGridData(show: true),
-                    titlesData: FlTitlesData(
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          getTitlesWidget: (value, meta) {
-                            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-                            return Text(months[value.toInt() % 6],
-                                style: TextStyle(color: textDark));
-                          },
-                        ),
-                      ),
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(showTitles: true, reservedSize: 40),
-                      ),
-                    ),
-                    borderData: FlBorderData(show: false),
-                    lineBarsData: [
-                      LineChartBarData(
-                        spots: const [
-                          FlSpot(0, 65),
-                          FlSpot(1, 59),
-                          FlSpot(2, 80),
-                          FlSpot(3, 81),
-                          FlSpot(4, 56),
-                          FlSpot(5, 92),
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance.collection('users').snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                    
+                    int plannerCount = 0;
+                    int vendorCount = 0;
+                    
+                    for (var doc in snapshot.data!.docs) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      if (data['role'] == 'Planner') {
+                        plannerCount++;
+                      } else if (data['role'] == 'Vendor') {
+                        vendorCount++;
+                      }
+                    }
+
+                    if (plannerCount == 0 && vendorCount == 0) {
+                      return Center(child: Text("No user data", style: TextStyle(color: textDark)));
+                    }
+
+                    return PieChart(
+                      PieChartData(
+                        sections: [
+                          PieChartSectionData(
+                            value: plannerCount.toDouble(),
+                            color: primary,
+                            title: 'Planners\n($plannerCount)',
+                            titleStyle: TextStyle(color: textLight, fontSize: 12),
+                            radius: 80,
+                          ),
+                          PieChartSectionData(
+                            value: vendorCount.toDouble(),
+                            color: secondary,
+                            title: 'Vendors\n($vendorCount)',
+                            titleStyle: TextStyle(color: textLight, fontSize: 12),
+                            radius: 80,
+                          ),
                         ],
-                        isCurved: true,
-                        gradient: LinearGradient(colors: [primary.withOpacity(0.6), primary.withOpacity(0)]),
-                        barWidth: 3,
-                        dotData: FlDotData(show: true),
+                        sectionsSpace: 4,
+                        centerSpaceRadius: 40,
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            
+            // Bookings Over Time (Dynamic)
             _buildChartCard(
-              title: "Payments",
+              title: "Bookings Over Time (Last 30 Days)",
               child: SizedBox(
-                height: 200,
-                child: BarChart(
-                  BarChartData(
-                    gridData: FlGridData(show: true),
-                    titlesData: FlTitlesData(
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          getTitlesWidget: (value, meta) {
-                            const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-                            return Text(weeks[value.toInt() % 4], style: TextStyle(color: textDark));
-                          },
+                height: 250,
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('bookings')
+                      .where('requestedAt', isGreaterThanOrEqualTo: Timestamp.fromDate(DateTime.now().subtract(const Duration(days: 30))))
+                      .orderBy('requestedAt', descending: false)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                    
+                    // Group bookings by day
+                    final Map<int, int> bookingsPerDay = {};
+                    for (var doc in snapshot.data!.docs) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final Timestamp timestamp = data['requestedAt'] ?? Timestamp.now();
+                      final DateTime date = timestamp.toDate();
+                      final int dayOfYear = int.parse(DateFormat("D").format(date)); // Day of the year
+                      
+                      bookingsPerDay.update(dayOfYear, (value) => value + 1, ifAbsent: () => 1);
+                    }
+
+                    // Convert map to FlSpot list
+                    final List<FlSpot> spots = bookingsPerDay.entries.map((entry) {
+                      // We need a 0-based index for the x-axis. This is a simplification.
+                      // A better way would be to normalize all days relative to the start date.
+                      // For this example, we'll just use the day of year mod 30.
+                       final double x = entry.key.toDouble() % 30;
+                       final double y = entry.value.toDouble();
+                       return FlSpot(x, y);
+                    }).toList();
+
+                    if (spots.isEmpty) {
+                       return Center(child: Text("No recent bookings", style: TextStyle(color: textDark)));
+                    }
+
+                    spots.sort((a, b) => a.x.compareTo(b.x));
+
+                    return LineChart(
+                      LineChartData(
+                        gridData: FlGridData(show: false),
+                        titlesData: FlTitlesData(
+                          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40)),
+                          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                         ),
-                      ),
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(showTitles: true, reservedSize: 40),
-                      ),
-                    ),
-                    borderData: FlBorderData(show: false),
-                    barGroups: [
-                      BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 12000, color: primary)]),
-                      BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: 19000, color: secondary)]),
-                      BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: 15000, color: Colors.blue)]),
-                      BarChartGroupData(x: 3, barRods: [BarChartRodData(toY: 21000, color: Colors.green)]),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            _buildChartCard(
-              title: "Platform Activity",
-              child: SizedBox(
-                height: 200,
-                child: LineChart(
-                  LineChartData(
-                    lineBarsData: [
-                      LineChartBarData(
-                        spots: const [
-                          FlSpot(0, 12),
-                          FlSpot(1, 19),
-                          FlSpot(2, 3),
-                          FlSpot(3, 5),
-                          FlSpot(4, 2),
-                          FlSpot(5, 8),
-                          FlSpot(6, 15),
+                        borderData: FlBorderData(show: true, border: Border.all(color: textDark.withOpacity(0.5))),
+                        lineBarsData: [
+                          LineChartBarData(
+                            spots: spots,
+                            isCurved: true,
+                            gradient: LinearGradient(colors: [secondary, primary]),
+                            barWidth: 3,
+                            dotData: FlDotData(show: false),
+                            belowBarData: BarAreaData(
+                              show: true,
+                              gradient: LinearGradient(
+                                colors: [secondary.withOpacity(0.3), primary.withOpacity(0.1)],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              ),
+                            ),
+                          ),
                         ],
-                        isCurved: true,
-                        color: Colors.blue,
-                        barWidth: 3,
-                        dotData: FlDotData(show: true),
+                        minY: 0,
                       ),
-                      LineChartBarData(
-                        spots: const [
-                          FlSpot(0, 5),
-                          FlSpot(1, 8),
-                          FlSpot(2, 2),
-                          FlSpot(3, 4),
-                          FlSpot(4, 1),
-                          FlSpot(5, 6),
-                          FlSpot(6, 7),
-                        ],
-                        isCurved: true,
-                        color: Colors.pink,
-                        barWidth: 3,
-                        dotData: FlDotData(show: true),
-                      ),
-                    ],
-                    gridData: FlGridData(show: true),
-                    titlesData: FlTitlesData(
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          getTitlesWidget: (value, meta) {
-                            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                            return Text(days[value.toInt() % 7], style: TextStyle(color: textDark));
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            _buildChartCard(
-              title: "User Engagement",
-              child: SizedBox(
-                height: 200,
-                child: PieChart(
-                  PieChartData(
-                    sections: [
-                      PieChartSectionData(value: 300, color: primary, title: 'Likes', titleStyle: TextStyle(color: textLight)),
-                      PieChartSectionData(value: 150, color: secondary, title: 'Comments', titleStyle: TextStyle(color: textLight)),
-                      PieChartSectionData(value: 100, color: Colors.blue, title: 'Shares', titleStyle: TextStyle(color: textLight)),
-                      PieChartSectionData(value: 200, color: Colors.pink, title: 'Saves', titleStyle: TextStyle(color: textLight)),
-                    ],
-                    sectionsSpace: 4,
-                    centerSpaceRadius: 40,
-                  ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -207,15 +175,22 @@ class AdminAnalytics extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1F1A30),
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white24),
+        border: Border.all(color: Colors.white12.withOpacity(0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 8),
+          Text(
+            title,
+            style: TextStyle(
+              color: textLight,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 16),
           child,
         ],
       ),

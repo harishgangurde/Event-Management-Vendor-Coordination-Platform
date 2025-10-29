@@ -21,26 +21,62 @@ class _VendorsScreenState extends State<VendorsScreen> {
   static const String vendorImage2 = 'assets/images/moments.png';
   static const String vendorImage3 = 'assets/images/elegant.png';
   static const String vendorImage4 = 'assets/images/floral.png';
-  final List<String> _mockImages = [vendorImage1, vendorImage2, vendorImage3, vendorImage4];
+  final List<String> _mockImages = [
+    vendorImage1,
+    vendorImage2,
+    vendorImage3,
+    vendorImage4
+  ];
 
   // State for filters
   String? _selectedServiceType;
   double _selectedRating = 0; // 0 means no rating filter
 
   // Options for the filter dropdowns
-  final List<String> _serviceTypes = ['Catering', 'Photography', 'Venue', 'Decor', 'Music'];
-  final List<String> _ratingOptions = ['4+ Stars', '3+ Stars', '2+ Stars', '1+ Star'];
-
+  final List<String> _serviceTypes = [
+    'Catering',
+    'Photography',
+    'Venue',
+    'Decor',
+    'Music'
+  ];
+  final List<String> _ratingOptions = [
+    '4+ Stars',
+    '3+ Stars',
+    '2+ Stars',
+    '1+ Star'
+  ];
 
   // --- NEW FUNCTION: Send booking request to Firebase ---
-  Future<void> _sendBookingRequest(BuildContext context, String vendorId, String vendorName) async {
+  Future<void> _sendBookingRequest(
+      BuildContext context, String vendorId, String vendorName) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-       ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You must be logged in to book.')),
       );
       return;
     }
+
+    // --- *** BUG FIX 4: CHECK BOOKING CONTEXT *** ---
+    if (widget.eventName == "General Vendor Search") {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Select an Event'),
+          content: const Text(
+              'To book this vendor, please go to your event\'s detail page and add vendors from there.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return; // Stop execution
+    }
+    // --- *** END OF FIX *** ---
 
     try {
       // Create a new document in the 'bookings' collection
@@ -48,7 +84,8 @@ class _VendorsScreenState extends State<VendorsScreen> {
         'plannerId': user.uid,
         'vendorId': vendorId,
         'vendorName': vendorName, // Store for easy display on both ends
-        'plannerName': user.displayName ?? user.email, // Store for easy display
+        'plannerName':
+            user.displayName ?? user.email, // Store for easy display
         'eventName': widget.eventName,
         'status': 'pending', // Status: pending, confirmed, declined
         'requestedAt': FieldValue.serverTimestamp(),
@@ -73,23 +110,24 @@ class _VendorsScreenState extends State<VendorsScreen> {
     }
   }
 
-  // 💡 --- UPDATED FUNCTION: Build the Firestore query based on filters ---
+  // 💡 --- *** BUG FIX 3: UPDATED QUERY FUNCTION *** ---
   Query _buildVendorQuery() {
     // Start with the base query
     Query query = FirebaseFirestore.instance
         .collection('users')
-        .where('role', isEqualTo: 'Vendor'); // ✅ FIX: Use named parameter 'isEqualTo'
+        .where('role', isEqualTo: 'Vendor')
+        .where('status', isEqualTo: 'Active'); // Only show approved vendors
 
     // Apply service type filter if selected
     if (_selectedServiceType != null) {
       // Assumes vendors have a 'serviceType' field
-      query = query.where('serviceType', isEqualTo: _selectedServiceType); // ✅ FIX
+      query = query.where('serviceType', isEqualTo: _selectedServiceType);
     }
-    
+
     // Apply rating filter if selected
     if (_selectedRating > 0) {
       // Assumes vendors have a 'rating' field (number)
-      query = query.where('rating', isGreaterThanOrEqualTo: _selectedRating); // ✅ FIX
+      query = query.where('rating', isGreaterThanOrEqualTo: _selectedRating);
     }
 
     // Note: Availability filtering is complex and often requires a different
@@ -115,9 +153,9 @@ class _VendorsScreenState extends State<VendorsScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     // Use theme colors from app_theme.dart
-    final Color backgroundColor = isDark ? AppTheme.kBackgroundDark : AppTheme.backgroundLight;
+    final Color backgroundColor =
+        isDark ? AppTheme.kBackgroundDark : AppTheme.backgroundLight;
     const Color primaryColor = AppTheme.kPrimaryColor;
-
 
     return WillPopScope(
       // Handles Android back button press
@@ -136,7 +174,8 @@ class _VendorsScreenState extends State<VendorsScreen> {
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new), // Inherits color from theme
+            icon:
+                const Icon(Icons.arrow_back_ios_new), // Inherits color from theme
             onPressed: () {
               _navigateBackToDashboard(context);
             },
@@ -153,12 +192,12 @@ class _VendorsScreenState extends State<VendorsScreen> {
                   prefixIcon: const Icon(Icons.search, color: Colors.grey),
                   hintText: 'Search vendors',
                   filled: true,
-                  fillColor: isDark
-                      ? AppTheme.kCardDarkColor
-                      : Colors.white,
+                  fillColor:
+                      isDark ? AppTheme.kCardDarkColor : Colors.white,
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(50),
-                    borderSide: const BorderSide(color: primaryColor, width: 2),
+                    borderSide:
+                        const BorderSide(color: primaryColor, width: 2),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(50),
@@ -189,21 +228,24 @@ class _VendorsScreenState extends State<VendorsScreen> {
                     theme: theme, // 💡 --- FIX: Pass theme ---
                   ),
                   const SizedBox(width: 8),
-                  
+
                   // Rating Filter
                   filterDropdown(
                     hint: 'Rating',
                     // Convert rating state back to string for display
-                    value: _selectedRating == 0 ? null : '${_selectedRating.toInt()}+ Star${_selectedRating > 1 ? 's' : ''}',
+                    value: _selectedRating == 0
+                        ? null
+                        : '${_selectedRating.toInt()}+ Star${_selectedRating > 1 ? 's' : ''}',
                     items: _ratingOptions,
                     onChanged: (String? newValue) {
-                      if(newValue == null) {
+                      if (newValue == null) {
                         setState(() => _selectedRating = 0);
                         return;
                       }
                       // Parse the string "4+ Stars" to the number 4
                       setState(() {
-                         _selectedRating = double.parse(newValue.substring(0, 1));
+                        _selectedRating =
+                            double.parse(newValue.substring(0, 1));
                       });
                     },
                     isDark: isDark,
@@ -212,11 +254,12 @@ class _VendorsScreenState extends State<VendorsScreen> {
                   const SizedBox(width: 8),
 
                   // Availability Filter (UI Stub)
-                  filterButton('Availability', Icons.calendar_today, isDark, () {
+                  filterButton(
+                      'Availability', Icons.calendar_today, isDark, () {
                     // TODO: Implement date picker logic for availability
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Availability filter coming soon!'))
-                    );
+                        const SnackBar(
+                            content: Text('Availability filter coming soon!')));
                   }),
                 ],
               ),
@@ -241,15 +284,18 @@ class _VendorsScreenState extends State<VendorsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.search_off, size: 60, color: Colors.grey),
+                          Icon(Icons.search_off,
+                              size: 60, color: Colors.grey),
                           SizedBox(height: 16),
                           Text(
                             'No vendors found',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                           Text(
                             'Try adjusting your filters.',
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                            style:
+                                TextStyle(fontSize: 16, color: Colors.grey),
                           ),
                         ],
                       ),
@@ -265,17 +311,18 @@ class _VendorsScreenState extends State<VendorsScreen> {
                     itemBuilder: (context, index) {
                       final doc = vendorDocs[index];
                       final data = doc.data() as Map<String, dynamic>;
-                      
+
                       // Use profileImageUrl from Firebase, or a mock image as fallback
-                      final imageUrl = data['profileImageUrl'] ?? _mockImages[index % _mockImages.length];
+                      final imageUrl = data['profileImageUrl'] ??
+                          _mockImages[index % _mockImages.length];
 
                       return vendorCard(
-                        vendorId: doc.id, // Pass the doc ID
-                        vendorData: data,
-                        imageUrl: imageUrl, // Use fetched URL or mock
-                        isDark: isDark, 
-                        context: context
-                      );
+                          vendorId: doc.id, // Pass the doc ID
+                          vendorData: data,
+                          imageUrl:
+                              imageUrl, // Use fetched URL or mock
+                          isDark: isDark,
+                          context: context);
                     },
                   );
                 },
@@ -289,9 +336,9 @@ class _VendorsScreenState extends State<VendorsScreen> {
 
   // Filter Dropdown Widget
   Widget filterDropdown({
-    required String hint, 
-    required String? value, 
-    required List<String> items, 
+    required String hint,
+    required String? value,
+    required List<String> items,
     required ValueChanged<String?> onChanged,
     required bool isDark,
     required ThemeData theme, // 💡 --- FIX: Add theme parameter ---
@@ -305,9 +352,14 @@ class _VendorsScreenState extends State<VendorsScreen> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
-          hint: Text(hint, style: const TextStyle(color: AppTheme.kPrimaryColor, fontSize: 14)),
-          icon: const Icon(Icons.expand_more, color: AppTheme.kPrimaryColor, size: 20),
-          style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14), // 💡 --- FIX: Use theme ---
+          hint: Text(hint,
+              style: const TextStyle(
+                  color: AppTheme.kPrimaryColor, fontSize: 14)),
+          icon: const Icon(Icons.expand_more,
+              color: AppTheme.kPrimaryColor, size: 20),
+          style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontSize: 14), // 💡 --- FIX: Use theme ---
           dropdownColor: isDark ? AppTheme.kCardDarkColor : Colors.white,
           items: items.map((String item) {
             return DropdownMenuItem<String>(
@@ -322,7 +374,8 @@ class _VendorsScreenState extends State<VendorsScreen> {
   }
 
   // Filter Button Widget (for Availability)
-  Widget filterButton(String label, IconData icon, bool isDark, VoidCallback onPressed) {
+  Widget filterButton(
+      String label, IconData icon, bool isDark, VoidCallback onPressed) {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.kPrimaryColor.withOpacity(isDark ? 0.2 : 0.1),
@@ -330,14 +383,15 @@ class _VendorsScreenState extends State<VendorsScreen> {
       ),
       child: TextButton.icon(
         onPressed: onPressed,
-        icon: const Icon(Icons.calendar_today, size: 16, color: AppTheme.kPrimaryColor),
+        icon: const Icon(Icons.calendar_today,
+            size: 16, color: AppTheme.kPrimaryColor),
         label: Text(
           label,
-          style: const TextStyle(color: AppTheme.kPrimaryColor, fontSize: 14),
+          style:
+              const TextStyle(color: AppTheme.kPrimaryColor, fontSize: 14),
         ),
         style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4)
-        ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4)),
       ),
     );
   }
@@ -352,12 +406,16 @@ class _VendorsScreenState extends State<VendorsScreen> {
   }) {
     // Extract data with fallbacks
     final String name = vendorData['name'] ?? 'No Name';
-    final String type = vendorData['serviceType'] ?? 'Vendor'; // Assumes 'serviceType' field
-    final double rating = (vendorData['rating'] as num?)?.toDouble() ?? 0.0; // Assumes 'rating' field
-    final int reviews = (vendorData['reviews'] as num?)?.toInt() ?? 0; // Assumes 'reviews' field
-    
+    final String type =
+        vendorData['serviceType'] ?? 'Vendor'; // Assumes 'serviceType' field
+    final double rating =
+        (vendorData['rating'] as num?)?.toDouble() ?? 0.0; // Assumes 'rating' field
+    final int reviews =
+        (vendorData['reviews'] as num?)?.toInt() ?? 0; // Assumes 'reviews' field
+
     // Check if it's a network image or local asset
-    final bool isNetworkImage = imageUrl.startsWith('http');
+    final bool isNetworkImage =
+        imageUrl.startsWith('http') || imageUrl.startsWith('https');
 
     // 💡 --- FIX: Get theme from context ---
     final theme = Theme.of(context);
@@ -376,20 +434,22 @@ class _VendorsScreenState extends State<VendorsScreen> {
                   borderRadius: BorderRadius.circular(12),
                   // Use Image.network or Image.asset
                   child: isNetworkImage
-                    ? Image.network(
-                        imageUrl,
-                        height: 80,
-                        width: 80,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => _imageErrorPlaceholder(),
-                      )
-                    : Image.asset(
-                        imageUrl,
-                        height: 80,
-                        width: 80,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => _imageErrorPlaceholder(),
-                      ),
+                      ? Image.network(
+                          imageUrl,
+                          height: 80,
+                          width: 80,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              _imageErrorPlaceholder(),
+                        )
+                      : Image.asset(
+                          imageUrl,
+                          height: 80,
+                          width: 80,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              _imageErrorPlaceholder(),
+                        ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -401,7 +461,8 @@ class _VendorsScreenState extends State<VendorsScreen> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color: theme.colorScheme.onSurface, // 💡 --- FIX: Use theme ---
+                          color:
+                              theme.colorScheme.onSurface, // 💡 --- FIX: Use theme ---
                         ),
                       ),
                       Text(
@@ -424,7 +485,8 @@ class _VendorsScreenState extends State<VendorsScreen> {
                             rating.toStringAsFixed(1), // Format rating
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onSurface, // 💡 --- FIX: Use theme ---
+                              color: theme
+                                  .colorScheme.onSurface, // 💡 --- FIX: Use theme ---
                             ),
                           ),
                           const SizedBox(width: 4),
@@ -463,7 +525,8 @@ class _VendorsScreenState extends State<VendorsScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => _sendBookingRequest(context, vendorId, name),
+                    onPressed: () =>
+                        _sendBookingRequest(context, vendorId, name),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.kPrimaryColor,
                       foregroundColor: Colors.white, // Set text color
@@ -481,7 +544,7 @@ class _VendorsScreenState extends State<VendorsScreen> {
       ),
     );
   }
-  
+
   // Helper for image errors
   Widget _imageErrorPlaceholder() {
     return Container(

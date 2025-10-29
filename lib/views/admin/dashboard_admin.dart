@@ -1,3 +1,7 @@
+// lib/views/admin/dashboard_admin.dart
+
+import 'package:async/async.dart'; // Make sure you've added this: flutter pub add async
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eventtoria/views/admin/analytics_admin.dart';
 import 'package:eventtoria/views/admin/setting_admin.dart';
 import 'package:eventtoria/views/admin/notification_admin.dart';
@@ -22,6 +26,51 @@ class _AdminDashboardState extends State<AdminDashboard> {
   final Color textDark = const Color(0xFF9CA3AF);
 
   int _selectedIndex = 0;
+
+  // Helper to create a stream for a collection count
+  Stream<int> _getCollectionCount(
+    String collection,
+    String? field,
+    String? isEqualTo,
+  ) {
+    Query query = FirebaseFirestore.instance.collection(collection);
+    if (field != null && isEqualTo != null) {
+      query = query.where(field, isEqualTo: isEqualTo);
+    }
+    return query.snapshots().map((snapshot) => snapshot.size);
+  }
+
+  // Helper for pending vendors
+  Stream<int> _getPendingVendorCount() {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .where('role', isEqualTo: 'Vendor')
+        .where('status', isEqualTo: 'Pending')
+        .snapshots()
+        .map((snapshot) => snapshot.size);
+  }
+
+  // We need to combine planner and vendor counts.
+  // Using AsyncMemoizer to avoid re-fetching on rebuild.
+  final AsyncMemoizer<Stream<int>> _memoizer = AsyncMemoizer<Stream<int>>();
+
+  // --- *** THIS IS THE FIX *** ---
+  // Removed 'async' from the function signature
+  Future<Stream<int>> _getTotalUserCount() {
+    return _memoizer.runOnce(() async {
+      Stream<int> plannerStream = _getCollectionCount(
+        'users',
+        'role',
+        'Planner',
+      );
+      Stream<int> vendorStream = _getCollectionCount('users', 'role', 'Vendor');
+
+      // Combine the two streams
+      return StreamZip([plannerStream, vendorStream]).map((counts) {
+        return counts[0] + counts[1]; // planners + vendors
+      });
+    });
+  }
 
   late final List<Widget> _pages = [
     _buildDashboardContent(),
@@ -51,7 +100,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
         automaticallyImplyLeading: false,
         title: Row(
           children: [
-            Image.asset('assets/images/logo.png', height: 35, width: 35),
+            // Assuming you have this logo in your assets
+            // Image.asset('assets/images/logo.png', height: 35, width: 35),
+            const Icon(Icons.shield_moon, color: Colors.white, size: 35),
             const SizedBox(width: 10),
             Text(
               'Admin Dashboard',
@@ -68,9 +119,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const AdminNotifications(),
-                ),
+                MaterialPageRoute(builder: (context) => AdminNotifications()),
               );
             },
             icon: const Icon(Icons.notifications_outlined, color: Colors.white),
@@ -138,39 +187,44 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 crossAxisCount: isDesktop
                     ? 4
                     : isTablet
-                    ? 3
+                    ? 2 // Better for tablets
                     : 2,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
                 childAspectRatio: isDesktop ? 1.6 : 1.2,
                 children: [
+                  // Planners Card
                   _buildStatCard(
                     icon: Icons.group,
                     title: "Planners",
-                    value: "1,250",
-                    change: "+15% last month",
-                    color: Colors.greenAccent,
+                    stream: _getCollectionCount('users', 'role', 'Planner'),
+                    change: "Total Planners",
+                    color: Colors.transparent, // No change color
                   ),
+                  // Vendors Card
                   _buildStatCard(
                     icon: Icons.storefront,
                     title: "Vendors",
-                    value: "8,420",
-                    change: "+22% last month",
-                    color: Colors.greenAccent,
+                    stream: _getCollectionCount('users', 'role', 'Vendor'),
+                    change: "Total Vendors",
+                    color: Colors.transparent,
                   ),
+                  // Bookings Card
+                  _buildStatCard(
+                    icon: Icons.calendar_month,
+                    title: "Bookings",
+                    stream: _getCollectionCount('bookings', null, null),
+                    change: "Total Bookings",
+                    color: Colors.transparent,
+                  ),
+                  // Total Users Card (Example of more complex stream)
                   _buildStatCard(
                     icon: Icons.analytics,
-                    title: "Analytics",
-                    value: "320",
-                    change: "+8% last month",
-                    color: Colors.greenAccent,
-                  ),
-                  _buildStatCard(
-                    icon: Icons.payments,
-                    title: "Transactions",
-                    value: "\$1.2M",
-                    change: "-3% last month",
-                    color: Colors.redAccent,
+                    title: "Total Users",
+                    // This uses the combined stream
+                    futureStream: _getTotalUserCount(),
+                    change: "Planners + Vendors",
+                    color: Colors.transparent,
                   ),
                 ],
               ),
@@ -191,18 +245,27 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 children: [
                   _buildActionCard(
                     title: "Vendor Registrations",
-                    subtitle: "3 new pending requests",
+                    stream: _getPendingVendorCount(),
                     buttonText: "Approve/Reject",
                     buttonColor: primary,
                     icon: Icons.arrow_forward,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const VendorApproval(),
+                        ),
+                      );
+                    },
                   ),
                   _buildActionCard(
-                    title: "Monitor Activity",
-                    subtitle: "View platform usage logs",
-                    buttonText: "View Logs",
+                    title: "Manage All Users",
+                    subtitle: "View, edit, or remove users",
+                    buttonText: "View Users",
                     buttonColor: secondary.withOpacity(0.2),
-                    icon: Icons.monitor_heart_outlined,
+                    icon: Icons.people,
                     textColor: secondary,
+                    onTap: () => _onItemTapped(1), // Go to Users tab
                   ),
                 ],
               ),
@@ -217,7 +280,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget _buildStatCard({
     required IconData icon,
     required String title,
-    required String value,
+    Stream<int>? stream,
+    Future<Stream<int>>? futureStream, // For the combined stream
     required String change,
     required Color color,
   }) {
@@ -240,6 +304,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Row(
               children: [
@@ -249,15 +314,89 @@ class _AdminDashboardState extends State<AdminDashboard> {
               ],
             ),
             const SizedBox(height: 4),
+            // Use StreamBuilder to display the dynamic count
+            if (stream != null)
+              StreamBuilder<int>(
+                stream: stream,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    );
+                  }
+                  if (!snapshot.hasData) {
+                    return const Text(
+                      "0",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    );
+                  }
+                  return Text(
+                    snapshot.data.toString(),
+                    style: TextStyle(
+                      color: textLight,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  );
+                },
+              )
+            else if (futureStream != null)
+              FutureBuilder<Stream<int>>(
+                future: futureStream,
+                builder: (context, futureSnapshot) {
+                  if (!futureSnapshot.hasData) {
+                    return const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    );
+                  }
+                  return StreamBuilder<int>(
+                    stream: futureSnapshot.data,
+                    builder: (context, streamSnapshot) {
+                      if (streamSnapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        );
+                      }
+                      if (!streamSnapshot.hasData) {
+                        return const Text(
+                          "0",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        );
+                      }
+                      return Text(
+                        streamSnapshot.data.toString(),
+                        style: TextStyle(
+                          color: textLight,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
             Text(
-              value,
+              change,
               style: TextStyle(
-                color: textLight,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+                color: color == Colors.transparent ? textDark : color,
+                fontSize: 12,
               ),
             ),
-            Text(change, style: TextStyle(color: color, fontSize: 12)),
           ],
         ),
       ),
@@ -266,17 +405,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Widget _buildActionCard({
     required String title,
-    required String subtitle,
+    String? subtitle,
+    Stream<int>? stream, // For dynamic subtitle
     required String buttonText,
     required Color buttonColor,
     required IconData icon,
     Color? textColor,
+    VoidCallback? onTap,
   }) {
     return InkWell(
       borderRadius: BorderRadius.circular(16),
-      onTap: () {},
+      onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
+        width: 400, // Max width for wrap
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: cardDark,
@@ -305,15 +447,31 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       fontSize: 15,
                     ),
                   ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(color: textDark, fontSize: 13),
-                  ),
+                  // Use StreamBuilder for dynamic subtitle
+                  if (stream != null)
+                    StreamBuilder<int>(
+                      stream: stream,
+                      builder: (context, snapshot) {
+                        String subText = "0 new pending requests";
+                        if (snapshot.hasData) {
+                          subText = "${snapshot.data} new pending requests";
+                        }
+                        return Text(
+                          subText,
+                          style: TextStyle(color: textDark, fontSize: 13),
+                        );
+                      },
+                    )
+                  else if (subtitle != null)
+                    Text(
+                      subtitle,
+                      style: TextStyle(color: textDark, fontSize: 13),
+                    ),
                 ],
               ),
             ),
             ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: onTap,
               style: ElevatedButton.styleFrom(
                 backgroundColor: buttonColor,
                 foregroundColor: textColor ?? Colors.white,

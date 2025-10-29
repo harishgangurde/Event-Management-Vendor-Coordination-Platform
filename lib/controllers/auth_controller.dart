@@ -6,6 +6,23 @@ class AuthController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // --- NEW METHOD ---
+  // This just creates the user and returns the User object
+  Future<User?> signUpUserOnly({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(email: email, password: password);
+      return userCredential.user;
+    } on FirebaseAuthException catch (e) {
+      // Re-throw the exception so the UI can catch it
+      throw e;
+    }
+  }
+
+  // --- THIS METHOD IS NO LONGER USED BY SIGNUP_SCREEN ---
   // Sign Up user
   Future<String?> signUp({
     required String name,
@@ -31,7 +48,8 @@ class AuthController {
       return null; // null means success
     } on FirebaseAuthException catch (e) {
       return e.message;
-    } catch (e) {
+    } catch (e)
+      {
       return e.toString();
     }
   }

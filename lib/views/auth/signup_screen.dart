@@ -1,3 +1,5 @@
+// lib/views/auth/signup_screen.dart
+import 'package:eventtoria/controllers/auth_controller.dart'; // IMPORT
 import 'package:eventtoria/views/planner/planner_dashboard.dart';
 import 'package:eventtoria/views/vendor/vendor_dashboard.dart';
 import 'package:eventtoria/views/auth/login_screen.dart';
@@ -16,7 +18,8 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final _auth = FirebaseAuth.instance;
+  // final _auth = FirebaseAuth.instance; // No longer needed directly
+  final AuthController _authController = AuthController(); // USE CONTROLLER
 
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
@@ -80,22 +83,42 @@ class _SignupScreenState extends State<SignupScreen>
       setState(() => _loading = true);
 
       try {
-        UserCredential userCred = await _auth.createUserWithEmailAndPassword(
+        // --- UPDATED AUTH LOGIC ---
+        // Use the AuthController to sign up
+        final user = await _authController.signUpUserOnly(
           email: emailController.text.trim(),
           password: passwordController.text.trim(),
         );
 
+        if (user == null) {
+          throw FirebaseAuthException(
+              code: 'USER-NOT-CREATED', message: 'Could not create user.');
+        }
+
+        // --- FIX: ADDED STATUS FIELD ---
+        String status = (_role == 'Planner') ? 'Active' : 'Pending';
+
+        // Save user data to Firestore
         await FirebaseFirestore.instance
             .collection('users')
-            .doc(userCred.user!.uid)
+            .doc(user.uid)
             .set({
           'name': nameController.text.trim(),
           'email': emailController.text.trim(),
           'phone': phoneController.text.trim(),
           'role': _role,
-          'uid': userCred.user!.uid,
+          'uid': user.uid,
+          'status': status, // <-- BUG FIX: Add status field
           'createdAt': FieldValue.serverTimestamp(),
+          // Default empty fields for vendor profile
+          'description': '',
+          'serviceType': '',
+          'rating': 0.0,
+          'reviews': 0,
+          'profileImageUrl': '',
+          'portfolioImageUrls': [],
         });
+        // --- END OF FIX ---
 
         // Navigate directly to dashboard
         Widget destination =
