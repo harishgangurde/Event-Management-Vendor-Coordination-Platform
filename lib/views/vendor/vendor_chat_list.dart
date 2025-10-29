@@ -1,23 +1,22 @@
-// lib/views/planner/chat_list_screen.dart
+// lib/views/vendor/vendor_chat_list.dart
+// --- UPDATED FILE ---
+// This screen allows vendors to see a list of all planners
+// they have confirmed bookings with.
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eventtoria/config/app_theme.dart';
+import 'package:eventtoria/views/vendor/vendor_chat.dart'; // Navigates to the functional vendor chat
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-// 💡 IMPORT
-// Make sure you have renamed your original 'chat_screen.dart' to 'chat_detail_screen.dart'
-// and that it accepts 'vendorId' and 'vendorName' parameters.
-import 'chat_detail_screen.dart';
-
-class ChatListScreen extends StatefulWidget {
-  const ChatListScreen({super.key});
+class VendorChatListScreen extends StatefulWidget {
+  const VendorChatListScreen({super.key});
 
   @override
-  State<ChatListScreen> createState() => _ChatListScreenState();
+  State<VendorChatListScreen> createState() => _VendorChatListScreenState();
 }
 
-class _ChatListScreenState extends State<ChatListScreen> {
+class _VendorChatListScreenState extends State<VendorChatListScreen> {
   final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
   @override
@@ -28,7 +27,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     // Handle user not logged in
     if (currentUserId == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Chats')),
+        appBar: AppBar(title: const Text('My Chats')),
         body: const Center(child: Text('Please log in to see your chats.')),
       );
     }
@@ -39,7 +38,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
           : AppTheme.backgroundLight,
       appBar: AppBar(
         title: const Text(
-          'Chats',
+          'My Chats',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: isDark
@@ -47,19 +46,24 @@ class _ChatListScreenState extends State<ChatListScreen> {
             : AppTheme.backgroundLight,
         elevation: 0,
         centerTitle: true,
-        automaticallyImplyLeading: false, // Remove back button
+        // 💡 --- FIX: Removed 'automaticallyImplyLeading: false' ---
+        // This screen should have a back button.
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        // 💡 Query for confirmed bookings to enable chat
+        // Query for confirmed bookings for THIS VENDOR
         stream: FirebaseFirestore.instance
             .collection('bookings')
-            .where('plannerId', isEqualTo: currentUserId)
+            .where('vendorId', isEqualTo: currentUserId)
             .where(
               'status',
               // 💡 --- FIX: Changed from 'confirmed' to 'accepted' ---
               // This must match what 'vendor_booking.dart' saves.
               isEqualTo: 'accepted',
-            ) // Only show chats for confirmed bookings
+            )
             .snapshots(),
         builder: (context, snapshot) {
           // Loading state
@@ -95,7 +99,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       textAlign: TextAlign.center,
                     ),
                     Text(
-                      'Once a vendor confirms your booking, you can start a chat with them here.',
+                      'Once you accept a planner\'s booking, you can start a chat with them here.',
                       style: TextStyle(fontSize: 16, color: Colors.grey),
                       textAlign: TextAlign.center,
                     ),
@@ -105,31 +109,31 @@ class _ChatListScreenState extends State<ChatListScreen> {
             );
           }
 
-          // 💡 De-duplicate vendors.
-          // A planner might book the same vendor for multiple events,
-          // but we only want to show one chat channel per vendor.
-          final Map<String, Map<String, dynamic>> vendors = {};
+          // De-duplicate planners.
+          // A vendor might be booked by the same planner for multiple events,
+          // but we only want one chat channel per planner.
+          final Map<String, Map<String, dynamic>> planners = {};
           for (var doc in snapshot.data!.docs) {
             final data = doc.data() as Map<String, dynamic>;
-            final vendorId = data['vendorId'];
-            if (vendorId != null && !vendors.containsKey(vendorId)) {
-              // Add the vendor to the map
-              vendors[vendorId] = data;
+            final plannerId = data['plannerId'];
+            if (plannerId != null && !planners.containsKey(plannerId)) {
+              // Add the planner to the map
+              planners[plannerId] = data;
             }
           }
 
           // Convert the map's values back to a list
-          final vendorList = vendors.values.toList();
+          final plannerList = planners.values.toList();
 
           // Data state
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: vendorList.length,
+            itemCount: plannerList.length,
             itemBuilder: (context, index) {
-              final data = vendorList[index];
-              final String vendorName = data['vendorName'] ?? 'Vendor';
-              final String vendorId = data['vendorId'];
-              // TODO: You can fetch the vendor's 'profileImageUrl' from the 'users' table using vendorId
+              final data = plannerList[index];
+              final String plannerName = data['plannerName'] ?? 'Planner';
+              final String plannerId = data['plannerId'];
+              // TODO: You can fetch the planner's 'profileImageUrl' from the 'users' table using plannerId
 
               return Card(
                 color: isDark ? AppTheme.kCardDarkColor : Colors.white,
@@ -146,11 +150,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     radius: 24,
                     backgroundColor: AppTheme.kAccentPurple,
                     child: Icon(Icons.person, color: Colors.white),
-                    // You would replace this with:
-                    // backgroundImage: NetworkImage(vendorData['profileImageUrl']),
                   ),
                   title: Text(
-                    vendorName,
+                    plannerName,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: const Text(
@@ -162,10 +164,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        // ✅ --- FIX: Renamed class to ChatDetailScreen and added const ---
-                        builder: (context) => ChatDetailScreen(
-                          vendorId: vendorId,
-                          vendorName: vendorName,
+                        // Navigate to the EXISTING functional vendor chat screen
+                        builder: (context) => VendorChat(
+                          plannerId: plannerId,
+                          plannerName: plannerName,
                         ),
                       ),
                     );
@@ -179,4 +181,3 @@ class _ChatListScreenState extends State<ChatListScreen> {
     );
   }
 }
-

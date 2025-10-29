@@ -1,13 +1,13 @@
 // lib/views/planner/planner_dashboard.dart
 
-import 'package:eventtoria/config/app_theme.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'profile_planner.dart';
 import 'notification_screen.dart';
-// 💡 UPDATED IMPORTS
-import 'chat_list_screen.dart'; // 💡 NEW: Lists confirmed chats
-import 'bookings_screen.dart'; // 💡 NEW: Lists all bookings
+import 'chat_list_screen.dart';
+import 'bookings_screen.dart';
 import 'event_details.dart'; // This is now used as a placeholder
 import 'create_event.dart';
 import 'eventoria_ai_screen.dart';
@@ -35,96 +35,131 @@ class PlannerHome extends StatelessWidget {
     );
   }
 
+  // --- UPDATED: buildUpcomingEvents ---
   Widget buildUpcomingEvents(BuildContext context, ThemeData theme) {
-    // This data is hardcoded for the demo
-    final events = [
-      {
-        'title': 'Grand Wedding Reception',
-        'date': 'October 15, 2024',
-        'image': 'assets/images/eventwedding.jpg',
-        'description':
-            'A luxurious grand wedding reception at the Royal Palace Banquet Hall featuring floral décor, live music, and a premium dining experience for 500+ guests.',
-        'venue': 'Royal Palace Banquet Hall, Mumbai',
-        'organizer': 'Shivkumar Events Pvt. Ltd.',
-      },
-      {
-        'title': "Sarah's 30th Birthday Bash",
-        'date': 'November 20, 2024',
-        'image': 'assets/images/birthday_event.jpg',
-        'description':
-            'A vibrant birthday celebration with a tropical theme, photo booth, and surprise dance performances to make Sarah’s 30th birthday unforgettable!',
-        'venue': 'Skyline Rooftop Lounge, Pune',
-        'organizer': 'DreamPlanners Co.',
-      },
-      // ... other events
-    ];
+    final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == null) return const SizedBox.shrink();
 
-    return SizedBox(
-      height: 200,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: events.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, i) {
-          final e = events[i];
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => EventInfoPage(
-                    title: e['title']!,
-                    date: e['date']!,
-                    image: e['image']!,
-                    description: e['description']!,
-                    venue: e['venue']!,
-                    organizer: e['organizer']!,
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('events')
+          .where('plannerId', isEqualTo: currentUserId)
+          // TODO: Add a date filter for 'upcoming'
+          // .where('date', isGreaterThanOrEqualTo: Timestamp.now().toDate().toString())
+          .orderBy('createdAt', descending: true) // Show newest first
+          .limit(5)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(
+            height: 200,
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Container(
+            height: 120,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: theme.cardColor,
+              borderRadius: BorderRadius.circular(12)
+            ),
+            child: const Center(
+              child: Text('No upcoming events.\nTap "Create Event" to start!', textAlign: TextAlign.center,),
+            ),
+          );
+        }
+
+        final events = snapshot.data!.docs;
+
+        return SizedBox(
+          height: 200,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: events.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, i) {
+              final doc = events[i];
+              final data = doc.data() as Map<String, dynamic>;
+
+              final String title = data['eventName'] ?? 'N/A';
+              final String date = data['date'] ?? 'N/A';
+              // Use the first image from the uploaded list
+              final String imageUrl = (data['imageUrls'] as List<dynamic>?)?.first ?? '';
+
+              return GestureDetector(
+                onTap: () {
+                  // TODO: Navigate to a REAL event details page
+                  // This placeholder is from the original code
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EventInfoPage(
+                        title: title,
+                        date: date,
+                        image: imageUrl.isNotEmpty ? imageUrl : 'assets/images/eventwedding.jpg', // Pass URL or fallback
+                        isNetworkImage: imageUrl.isNotEmpty, // Tell widget it's a network image
+                        description: data['description'] ?? 'No description.',
+                        venue: data['venue'] ?? 'N/A',
+                        organizer: 'Managed by you',
+                      ),
+                    ),
+                  );
+                },
+                child: SizedBox(
+                  width: 160,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: (imageUrl.isNotEmpty)
+                          ? Image.network(
+                              imageUrl,
+                              height: 120,
+                              width: 160,
+                              fit: BoxFit.cover,
+                              errorBuilder: (ctx, err, stack) => _imageErrorPlaceholder(theme),
+                            )
+                          : _imageErrorPlaceholder(theme),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        date,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color:
+                              theme.colorScheme.onBackground.withOpacity(0.6),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );
             },
-            child: SizedBox(
-              width: 160,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.asset(
-                      e['image']!,
-                      height: 120,
-                      width: 160,
-                      fit: BoxFit.cover,
-                      errorBuilder: (ctx, err, stack) => Container(
-                        height: 120,
-                        width: 160,
-                        color: Colors.grey.shade300,
-                        child: const Icon(Icons.image_not_supported),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    e['title']!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    e['date']!,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onBackground.withOpacity(0.6),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
+  }
+
+  Widget _imageErrorPlaceholder(ThemeData theme) {
+     return Container(
+        height: 120,
+        width: 160,
+        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        child: Icon(
+          Icons.image_not_supported,
+          color: theme.colorScheme.onSurface.withOpacity(0.5)
+        ),
+      );
   }
 
   Widget statCard(String label, String value, ThemeData theme) {
@@ -157,6 +192,7 @@ class PlannerHome extends StatelessWidget {
   }
 
   Widget buildQuickStats(ThemeData theme) {
+    // This can also be fetched from the 'events' data
     return Column(
       children: [
         Row(
@@ -391,17 +427,20 @@ class DashboardPlanner extends StatefulWidget {
 
 class _DashboardPlannerState extends State<DashboardPlanner> {
   int selectedIndex = 0;
-  final String currentEventName = "Annual Tech Conference"; // Example event name
+  // This is no longer needed here, it's fetched by PlannerHome
+  // final String currentEventName = "Annual Tech Conference";
 
-  // 💡 WIDGET OPTIONS UPDATED
   late final List<Widget> _widgetOptions;
 
   _DashboardPlannerState() {
     _widgetOptions = <Widget>[
       const PlannerHome(), // Index 0: Home
-      VendorsScreen(eventName: currentEventName), // Index 1: Vendors
-      const BookingsScreen(), // Index 2: Bookings (💡 NEW)
-      const ChatListScreen(), // Index 3: Chat (💡 NEW)
+      // eventName is required by VendorsScreen, but we don't know
+      // which event is "active". This is a design flaw to fix.
+      // For now, let's pass a placeholder.
+      const VendorsScreen(eventName: "General Vendor Search"), // Index 1
+      const BookingsScreen(), // Index 2: Bookings
+      const ChatListScreen(), // Index 3: Chat
       const ProfilePlanner(), // Index 4: Profile
     ];
   }
@@ -434,38 +473,34 @@ class _DashboardPlannerState extends State<DashboardPlanner> {
       child: Scaffold(
         // Use IndexedStack to keep the state of each tab alive
         body: IndexedStack(index: selectedIndex, children: _widgetOptions),
-        
+
         bottomNavigationBar: NavigationBar(
           // Apply theme colors
           backgroundColor: theme.scaffoldBackgroundColor,
           indicatorColor: theme.colorScheme.primary.withOpacity(0.2),
-          
+
           destinations: const [
             NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home), 
-              label: 'Home'
-            ),
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home),
+                label: 'Home'),
             NavigationDestination(
-              icon: Icon(Icons.groups_outlined),
-              selectedIcon: Icon(Icons.groups), 
-              label: 'Vendors'
-            ),
+                icon: Icon(Icons.groups_outlined),
+                selectedIcon: Icon(Icons.groups),
+                label: 'Vendors'),
             NavigationDestination(
               icon: Icon(Icons.calendar_month_outlined),
               selectedIcon: Icon(Icons.calendar_month),
               label: 'Bookings',
             ),
             NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline),
-              selectedIcon: Icon(Icons.chat_bubble), 
-              label: 'Chat'
-            ),
+                icon: Icon(Icons.chat_bubble_outline),
+                selectedIcon: Icon(Icons.chat_bubble),
+                label: 'Chat'),
             NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person), 
-              label: 'Profile'
-            ),
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person),
+                label: 'Profile'),
           ],
           selectedIndex: selectedIndex,
           onDestinationSelected: _onItemTapped,
@@ -486,6 +521,7 @@ class EventInfoPage extends StatelessWidget {
   final String description;
   final String venue;
   final String organizer;
+  final bool isNetworkImage; // NEW: Flag for network image
 
   const EventInfoPage({
     super.key,
@@ -495,6 +531,7 @@ class EventInfoPage extends StatelessWidget {
     required this.description,
     required this.venue,
     required this.organizer,
+    this.isNetworkImage = false, // Default to asset
   });
 
   @override
@@ -514,15 +551,22 @@ class EventInfoPage extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                image, 
-                fit: BoxFit.cover,
-                errorBuilder: (ctx, err, stack) => Container(
-                  height: 200,
-                  color: Colors.grey.shade300,
-                  child: const Icon(Icons.image_not_supported, size: 50),
-                ),
-              ),
+              // Use Image.network or Image.asset based on flag
+              child: isNetworkImage
+                ? Image.network(
+                    image,
+                    fit: BoxFit.cover,
+                    height: 200,
+                    width: double.infinity,
+                    errorBuilder: (ctx, err, stack) => _imageErrorPlaceholder(theme),
+                  )
+                : Image.asset(
+                    image,
+                    fit: BoxFit.cover,
+                    height: 200,
+                    width: double.infinity,
+                    errorBuilder: (ctx, err, stack) => _imageErrorPlaceholder(theme),
+                  ),
             ),
             const SizedBox(height: 16),
             Text(
@@ -561,5 +605,18 @@ class EventInfoPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _imageErrorPlaceholder(ThemeData theme) {
+     return Container(
+        height: 200,
+        width: double.infinity,
+        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        child: Icon(
+          Icons.image_not_supported,
+          size: 50,
+          color: theme.colorScheme.onSurface.withOpacity(0.5)
+        ),
+      );
   }
 }

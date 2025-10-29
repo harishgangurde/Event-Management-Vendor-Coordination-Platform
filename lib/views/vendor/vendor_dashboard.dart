@@ -1,9 +1,14 @@
+// lib/views/vendor/vendor_dashboard.dart
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'vendor_booking.dart';
 import 'vendor_profile.dart';
-import 'vendor_chat.dart';
-import 'vendor_notification.dart'; // ✅ New notifications screen
+// 💡 --- IMPORT THE NEW CHAT LIST SCREEN ---
+import 'vendor_chat_list.dart'; 
+import 'vendor_notification.dart';
 
 class VendorDashboard extends StatefulWidget {
   const VendorDashboard({super.key});
@@ -14,12 +19,38 @@ class VendorDashboard extends StatefulWidget {
 
 class _VendorDashboardState extends State<VendorDashboard> {
   int _selectedIndex = 0;
+  final String? currentVendorId = FirebaseAuth.instance.currentUser?.uid;
+  String _vendorName = "Vendor"; // Default name
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVendorName();
+  }
+
+  Future<void> _loadVendorName() async {
+    if (currentVendorId == null) return;
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentVendorId)
+          .get();
+      if (doc.exists && doc.data() != null) {
+        setState(() {
+          _vendorName = doc.data()!['name'] ?? 'Vendor';
+        });
+      }
+    } catch (e) {
+      // Handle error
+    }
+  }
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    // 💡 --- MODIFIED LOGIC ---
+    // Don't change state if tapping the same index
+    if (_selectedIndex == index) return;
 
+    // Handle navigation for tabs that are separate pages
     if (index == 1) {
       Navigator.push(
         context,
@@ -31,152 +62,43 @@ class _VendorDashboardState extends State<VendorDashboard> {
         MaterialPageRoute(builder: (context) => const VendorProfile()),
       );
     } else if (index == 3) {
+      // 💡 --- UPDATED: Navigate to the new chat list screen ---
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const VendorChat()),
+        MaterialPageRoute(builder: (context) => const VendorChatListScreen()),
       );
     } else if (index == 4) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const VendorNotifications()),
       );
+    } else {
+      // Only update state for index 0 (Home)
+      setState(() {
+        _selectedIndex = index;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // 💡 --- MODIFIED: The body is now a list of widgets ---
+    // Only 'Home' (index 0) is part of this screen.
+    // Other indices are handled by _onItemTapped navigation.
+    // This setup assumes 'Home' is the main screen.
+    final List<Widget> _pages = [
+      _buildHomeScreen(), // Index 0
+      Container(), // Index 1 (Bookings) - Handled by Nav
+      Container(), // Index 2 (Profile) - Handled by Nav
+      Container(), // Index 3 (Chat) - Handled by Nav
+      Container(), // Index 4 (Alerts) - Handled by Nav
+    ];
+    
     return Scaffold(
       backgroundColor: const Color(0xFF1A102E),
+      // 💡 --- MODIFIED: Body now uses the selected index ---
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Text(
-                'Eventtoria',
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Welcome back, Alex',
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 25),
-
-              // Upcoming Bookings
-              Text(
-                'Upcoming Bookings',
-                style: GoogleFonts.poppins(
-                  color: Colors.white70,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 15),
-              Row(
-                children: [
-                  Expanded(
-                    child: _bookingCard(
-                      imageUrl:
-                          'https://images.unsplash.com/photo-1556745753-b2904692b3cd',
-                      title: 'The Grand Ballroom',
-                      date: 'Oct 26, 2024',
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _bookingCard(
-                      imageUrl:
-                          'https://cdn.prod.website-files.com/6331e19fdfcbe01f4c12b610/66baffd5ee7f9fa6efed4473_640f82ab5d300300a891d92a_viva.jpeg',
-                      title: 'Tech Conference 2024',
-                      date: 'Nov 15, 2024',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 30),
-
-              // Revenue Statistics
-              Text(
-                'Revenue Statistics',
-                style: GoogleFonts.poppins(
-                  color: Colors.white70,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 15),
-              Row(
-                children: [
-                  Expanded(
-                    child: _statCard(
-                      label: 'Total Revenue',
-                      value: '₹9,960,000',
-                      percent: '+15%',
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _statCard(
-                      label: 'Avg. Booking Value',
-                      value: '₹830,000',
-                      percent: '+5%',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 30),
-
-              // New Requests
-              Text(
-                'New Requests',
-                style: GoogleFonts.poppins(
-                  color: Colors.white70,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 15),
-              _requestTile('Emily & David', 'Wedding'),
-              const SizedBox(height: 10),
-              _requestTile('Acme Corp', 'Corporate Event'),
-              const SizedBox(height: 30),
-
-              // AI Suggestions
-              Text(
-                'AI Suggestions',
-                style: GoogleFonts.poppins(
-                  color: Colors.white70,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 15),
-              _aiCard(
-                title: 'Adjust Pricing for Off-Peak Dates',
-                subtitle: 'Increase your booking rate',
-                icon: Icons.trending_up_rounded,
-              ),
-              const SizedBox(height: 10),
-              _aiCard(
-                title: 'Connect with Clients Seeking Similar Events',
-                subtitle: 'Match with potential clients',
-                icon: Icons.people_alt_rounded,
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
+        child: _pages[_selectedIndex],
       ),
 
       // Bottom Navigation Bar
@@ -205,7 +127,213 @@ class _VendorDashboardState extends State<VendorDashboard> {
     );
   }
 
-  // --- Helper Widgets ---
+  // 💡 --- NEW: Extracted Home screen content into its own method ---
+  Widget _buildHomeScreen() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Text(
+            'Eventtoria',
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Welcome back, $_vendorName', // Use loaded name
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 25),
+
+          // Upcoming Bookings
+          Text(
+            'Upcoming Bookings',
+            style: GoogleFonts.poppins(
+              color: Colors.white70,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 15),
+          _buildUpcomingBookings(), // Firebase-powered widget
+
+          const SizedBox(height: 30),
+
+          // Revenue Statistics
+          Text(
+            'Revenue Statistics',
+            style: GoogleFonts.poppins(
+              color: Colors.white70,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 15),
+          _buildRevenueStats(), // Firebase-powered widget
+
+          const SizedBox(height: 30),
+
+          // New Requests
+          Text(
+            'New Requests',
+            style: GoogleFonts.poppins(
+              color: Colors.white70,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 15),
+          _buildNewRequests(), // Firebase-powered widget
+
+          const SizedBox(height: 30),
+
+          // AI Suggestions (can remain static or be fetched)
+          Text(
+            'AI Suggestions',
+            style: GoogleFonts.poppins(
+              color: Colors.white70,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 15),
+          _aiCard(
+            title: 'Adjust Pricing for Off-Peak Dates',
+            subtitle: 'Increase your booking rate',
+            icon: Icons.trending_up_rounded,
+          ),
+          const SizedBox(height: 10),
+          _aiCard(
+            title: 'Connect with Clients Seeking Similar Events',
+            subtitle: 'Match with potential clients',
+            icon: Icons.people_alt_rounded,
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  // --- Firebase-powered Helper Widgets ---
+
+  Widget _buildUpcomingBookings() {
+    return FutureBuilder<QuerySnapshot>(
+      future: FirebaseFirestore.instance
+          .collection('bookings')
+          .where('vendorId', isEqualTo: currentVendorId)
+          .where('status', isEqualTo: 'accepted')
+          // TODO: Add a date filter for 'upcoming'
+          // .where('eventDate', isGreaterThanOrEqualTo: Timestamp.now())
+          .orderBy('requestedAt') // Replace with 'eventDate' when available
+          .limit(2)
+          .get(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.data!.docs.isEmpty) {
+          return const Text('No upcoming bookings.', style: TextStyle(color: Colors.white54));
+        }
+
+        final bookings = snapshot.data!.docs;
+        return Row(
+          children: [
+            Expanded(
+              child: _bookingCard(
+                // TODO: Fetch event image from 'events' collection using eventId
+                imageUrl:
+                    'https://images.unsplash.com/photo-1556745753-b2904692b3cd',
+                title: bookings[0]['eventName'] ?? 'Event',
+                date: 'N/A', // TODO: Get from event data
+              ),
+            ),
+            if (bookings.length > 1) ...[
+              const SizedBox(width: 12),
+              Expanded(
+                child: _bookingCard(
+                  imageUrl:
+                      'https://cdn.prod.website-files.com/6331e19fdfcbe01f4c12b610/66baffd5ee7f9fa6efed4473_640f82ab5d300300a891d92a_viva.jpeg',
+                  title: bookings[1]['eventName'] ?? 'Event',
+                  date: 'N/A', // TODO: Get from event data
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildRevenueStats() {
+    // This is complex. A real implementation would use a
+    // Firebase Function to calculate and store these stats in a
+    // separate 'vendor_stats' document for easy fetching.
+    // For now, we'll keep the static data.
+    return Row(
+      children: [
+        Expanded(
+          child: _statCard(
+            label: 'Total Revenue',
+            value: '₹9,960,000',
+            percent: '+15%',
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _statCard(
+            label: 'Avg. Booking Value',
+            value: '₹830,000',
+            percent: '+5%',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNewRequests() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('bookings')
+          .where('vendorId', isEqualTo: currentVendorId)
+          .where('status', isEqualTo: 'pending')
+          .orderBy('requestedAt', descending: true)
+          .limit(2)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.data!.docs.isEmpty) {
+          return const Text('No new requests.', style: TextStyle(color: Colors.white54));
+        }
+
+        final requests = snapshot.data!.docs;
+        return Column(
+          children: requests.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _requestTile(
+                data['plannerName'] ?? 'N/A',
+                data['eventName'] ?? 'Event',
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  // --- Helper Widgets (UI) ---
   Widget _bookingCard({
     required String imageUrl,
     required String title,

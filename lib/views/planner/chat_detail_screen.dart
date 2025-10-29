@@ -1,8 +1,14 @@
 // lib/views/planner/chat_detail_screen.dart
+// --- THIS FILE IS COMPLETELY REPLACED ---
+// It is now a functional, stateful chat screen instead of a mockup.
+// It is based on the logic from 'lib/views/vendor/vendor_chat.dart'.
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eventtoria/views/planner/planner_dashboard.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart'; // For date formatting
 
 // Define colors for consistency
 const Color kPrimaryColor = Color(0xFF7F06F9); // Purple
@@ -10,8 +16,7 @@ const Color kAccentPurple = Color(0xFFA564E9);
 const Color kBackgroundDark = Color(0xFF100819);
 const Color kCardDarkColor = Color(0xFF1E122D);
 
-// ✅ --- FIX: Renamed class and added parameters ---
-class ChatDetailScreen extends StatelessWidget {
+class ChatDetailScreen extends StatefulWidget {
   final String vendorId;
   final String vendorName;
 
@@ -21,8 +26,85 @@ class ChatDetailScreen extends StatelessWidget {
     required this.vendorName,
   });
 
-  static const String vendorAvatar = 'assets/images/atharva.jpg';
-  static const String plannerAvatar = 'assets/images/varad.jpg';
+  @override
+  State<ChatDetailScreen> createState() => _ChatDetailScreenState();
+}
+
+class _ChatDetailScreenState extends State<ChatDetailScreen> {
+  final TextEditingController _messageController = TextEditingController();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String? currentPlannerId = FirebaseAuth.instance.currentUser?.uid;
+
+  late String _chatRoomId;
+  String _plannerName = "Planner"; // Default, will be fetched
+
+  @override
+  void initState() {
+    super.initState();
+    if (currentPlannerId != null) {
+      _chatRoomId = _getChatRoomId(currentPlannerId!, widget.vendorId);
+      _loadPlannerName();
+    } else {
+      // Handle user not logged in
+      _chatRoomId = 'invalid_chat';
+    }
+  }
+
+  // Load the planner's name to save in the chat doc
+  Future<void> _loadPlannerName() async {
+    if (currentPlannerId == null) return;
+    try {
+      final doc = await _firestore
+          .collection('users')
+          .doc(currentPlannerId)
+          .get();
+      if (doc.exists && doc.data() != null) {
+        setState(() {
+          _plannerName = doc.data()!['name'] ?? 'Planner';
+        });
+      }
+    } catch (e) {
+      // Handle error
+    }
+  }
+
+  // Creates a sorted, unique ID for the chat room
+  String _getChatRoomId(String plannerId, String vendorId) {
+    if (plannerId.hashCode <= vendorId.hashCode) {
+      return '$plannerId\_$vendorId';
+    } else {
+      return '$vendorId\_$plannerId';
+    }
+  }
+
+  void _sendMessage() async {
+    final text = _messageController.text.trim();
+    if (text.isEmpty || currentPlannerId == null) return;
+
+    _messageController.clear();
+
+    final messageData = {
+      'text': text,
+      'senderId': currentPlannerId,
+      'timestamp': FieldValue.serverTimestamp(),
+    };
+
+    // Add message to the subcollection
+    await _firestore
+        .collection('chats')
+        .doc(_chatRoomId)
+        .collection('messages')
+        .add(messageData);
+
+    // Update the 'lastMessage' doc for chat list previews for BOTH users
+    await _firestore.collection('chats').doc(_chatRoomId).set({
+      'lastMessage': text,
+      'lastTimestamp': FieldValue.serverTimestamp(),
+      'participants': [currentPlannerId, widget.vendorId],
+      'plannerName': _plannerName, // Fetched name
+      'vendorName': widget.vendorName, // Passed-in name
+    }, SetOptions(merge: true));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,37 +124,23 @@ class ChatDetailScreen extends StatelessWidget {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
             onPressed: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const DashboardPlanner(),
-                ),
-                (route) => false, // Clears the entire stack
-              );
+              Navigator.pop(context); // Just pop, don't clear stack
             },
           ),
-          // ✅ --- FIX: Use vendorName variable ---
           title: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                vendorName, // Use the passed-in vendorName
+                widget.vendorName, // Use the passed-in vendorName
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 20,
+                  fontSize: 16,
                   color: Colors.white,
                 ),
               ),
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.circle, color: Colors.green, size: 8),
-                  SizedBox(width: 4),
-                  Text(
-                    'Online',
-                    style: TextStyle(fontSize: 12, color: Colors.green),
-                  ),
-                ],
+              const Text(
+                'Vendor', // Role
+                style: TextStyle(fontSize: 12, color: Colors.white70),
               ),
             ],
           ),
@@ -83,179 +151,107 @@ class ChatDetailScreen extends StatelessWidget {
             ),
           ],
         ),
-        body: Stack(children: [_buildChatMessages(), _buildChatInput(context)]),
-      ),
-    );
-  }
-
-  // --- Chat Message Area ---
-  Widget _buildChatMessages() {
-    // Message data structure: {text, time, isPlanner, showAvatar}
-    final List<Map<String, dynamic>> messages = [
-      {
-        'text':
-            "Hi there! We are so excited to be part of Anand & Priya's wedding. Just confirming, the event starts at 6 PM, right?",
-        'time': '5:30 PM',
-        'isPlanner': false,
-        'showAvatar': true,
-      },
-      {
-        'text':
-            "Hey! Yes, that's correct. Guests will start arriving around 6 PM. We need you to be set up by 5:45 PM latest.",
-        'time': '5:32 PM',
-        'isPlanner': true,
-        'showAvatar': true,
-      },
-      {
-        'text':
-            "Got it. We'll be there. Also, wanted to check about the power outlet access near the stage.",
-        'time': '5:33 PM',
-        'isPlanner': false,
-        'showAvatar': true,
-      },
-      // Mock typing indicator
-      {
-        'text': '...',
-        'time': '',
-        'isPlanner': false,
-        'showAvatar': true,
-        'isTyping': true,
-      },
-    ];
-
-    // Increased padding to account for the removed quick replies section
-    return ListView.builder(
-      padding: const EdgeInsets.only(
-        bottom: 100, // Reduced from 250, as the input field is now smaller
-      ),
-      itemCount: messages.length,
-      itemBuilder: (context, index) {
-        final msg = messages[index];
-        return _buildMessageBubble(
-          context,
-          text: msg['text'] as String,
-          time: msg['time'] as String,
-          isPlanner: msg['isPlanner'] as bool,
-          showAvatar: msg['showAvatar'] as bool,
-          isTyping: msg.containsKey('isTyping') && msg['isTyping'] as bool,
-        );
-      },
-    );
-  }
-
-  Widget _buildMessageBubble(
-    BuildContext context, {
-    required String text,
-    required String time,
-    required bool isPlanner,
-    required bool showAvatar,
-    bool isTyping = false,
-  }) {
-    final bubbleColor = isPlanner ? kAccentPurple : kCardDarkColor;
-    final alignment = isPlanner ? Alignment.centerRight : Alignment.centerLeft;
-    final borderRadius = BorderRadius.only(
-      topLeft: const Radius.circular(20),
-      topRight: const Radius.circular(20),
-      bottomLeft: isPlanner
-          ? const Radius.circular(20)
-          : const Radius.circular(4),
-      bottomRight: isPlanner
-          ? const Radius.circular(4)
-          : const Radius.circular(20),
-    );
-
-    final avatar = CircleAvatar(
-      radius: 16,
-      backgroundImage: AssetImage(isPlanner ? plannerAvatar : vendorAvatar),
-    );
-
-    // Typing indicator animation
-    if (isTyping) {
-      return Align(
-        alignment: alignment,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (!isPlanner && showAvatar) avatar,
-              const SizedBox(width: 8),
-              Container(
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.6,
-                ),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: bubbleColor,
-                  borderRadius: borderRadius,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: List.generate(
-                    3,
-                    (i) => Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2.0),
-                      child: TweenAnimationBuilder<double>(
-                        tween: Tween(begin: 0.0, end: 1.0),
-                        duration: Duration(milliseconds: 600 + i * 200),
-                        builder: (context, opacity, child) => Opacity(
-                          opacity: opacity,
-                          child: const CircleAvatar(
-                            radius: 4,
-                            backgroundColor: Colors.white,
-                          ),
-                        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: _firestore
+                    .collection('chats')
+                    .doc(_chatRoomId)
+                    .collection('messages')
+                    .orderBy('timestamp', descending: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'Say hello to ${widget.vendorName}!',
+                        style: GoogleFonts.poppins(color: Colors.white54),
                       ),
-                    ),
-                  ),
-                ),
+                    );
+                  }
+
+                  final messages = snapshot.data!.docs;
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    reverse: true, // Start from the bottom
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      final doc = messages[index];
+                      final data = doc.data() as Map<String, dynamic>;
+                      // Check if the sender is the current planner
+                      final bool isSender =
+                          data['senderId'] == currentPlannerId;
+
+                      // Format timestamp
+                      String time = 'Sending...';
+                      if (data['timestamp'] != null) {
+                        time = DateFormat(
+                          'hh:mm a',
+                        ).format((data['timestamp'] as Timestamp).toDate());
+                      }
+
+                      return _buildMessageBubble(
+                        data['text'] ?? '',
+                        isSender,
+                        time,
+                      );
+                    },
+                  );
+                },
               ),
-            ],
+            ),
+            _buildChatInput(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- Chat Message Bubble ---
+  Widget _buildMessageBubble(String text, bool isSender, String time) {
+    return Align(
+      alignment: isSender ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
+        decoration: BoxDecoration(
+          color: isSender ? kAccentPurple : kCardDarkColor,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: isSender
+                ? const Radius.circular(16)
+                : const Radius.circular(4),
+            bottomRight: isSender
+                ? const Radius.circular(4)
+                : const Radius.circular(16),
           ),
         ),
-      );
-    }
-
-    return Align(
-      alignment: alignment,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisSize: MainAxisSize.min,
-          textDirection: isPlanner ? TextDirection.rtl : TextDirection.ltr,
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: isSender
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
-            if (showAvatar) avatar,
-            const SizedBox(width: 8),
-            Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.65,
+            Text(
+              text,
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 14,
+                height: 1.4,
               ),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: bubbleColor,
-                borderRadius: borderRadius,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    text,
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                  const SizedBox(height: 4),
-                  Align(
-                    alignment: Alignment.bottomRight,
-                    child: Text(
-                      time,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 10,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              time,
+              style: GoogleFonts.poppins(color: Colors.white54, fontSize: 10),
             ),
           ],
         ),
@@ -263,75 +259,42 @@ class ChatDetailScreen extends StatelessWidget {
     );
   }
 
-  // --- Input Field (Modified) ---
-  Widget _buildChatInput(BuildContext context) {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
+  // --- Input Field ---
+  Widget _buildChatInput() {
+    return SafeArea(
       child: Container(
-        padding: const EdgeInsets.all(16.0),
-        decoration: BoxDecoration(
-          color: kBackgroundDark,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.4),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
-            ),
-          ],
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: const BoxDecoration(
+          color: kCardDarkColor,
+          border: Border(top: BorderSide(color: kBackgroundDark, width: 1)),
         ),
-        // Text Input Field (Simplified)
         child: Row(
           children: [
             Expanded(
               child: TextField(
-                style: const TextStyle(color: Colors.white),
+                controller: _messageController,
+                style: GoogleFonts.poppins(color: Colors.white),
                 decoration: InputDecoration(
-                  hintText: 'Type a message...',
-                  hintStyle: TextStyle(color: Colors.grey.shade500),
-                  filled: true,
-                  fillColor: kCardDarkColor,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: BorderSide.none,
-                  ),
-                  // Mic/Attachment icons
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.mic, color: Colors.white),
-                    onPressed: () {
-                      // Handle voice recording
-                    },
-                  ),
-                  prefixIcon: IconButton(
-                    icon: const Icon(
-                      Icons.add_circle_outline,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      // Handle attachment action
-                    },
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 15,
-                  ),
+                  hintText: "Type a message",
+                  hintStyle: GoogleFonts.poppins(color: Colors.white60),
+                  border: InputBorder.none,
                 ),
+                onSubmitted: (_) => _sendMessage(),
               ),
             ),
-            const SizedBox(width: 8),
-            Container(
-              height: 50,
-              width: 50,
-              decoration: BoxDecoration(
-                color: kPrimaryColor,
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.send, color: Colors.white),
-                onPressed: () {
-                  // Handle send action
-                },
+            GestureDetector(
+              onTap: _sendMessage,
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: kPrimaryColor,
+                  shape: BoxShape.circle,
+                ),
+                padding: const EdgeInsets.all(10),
+                child: const Icon(
+                  Icons.send_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
             ),
           ],
