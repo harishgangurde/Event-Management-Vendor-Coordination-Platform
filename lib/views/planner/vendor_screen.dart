@@ -25,31 +25,37 @@ class _VendorsScreenState extends State<VendorsScreen> {
     vendorImage1,
     vendorImage2,
     vendorImage3,
-    vendorImage4
+    vendorImage4,
   ];
 
   // State for filters
-  String? _selectedServiceType;
+  // 💡 --- FIX 1: Set default filter to 'All' ---
+  String? _selectedServiceType = 'All';
   double _selectedRating = 0; // 0 means no rating filter
 
   // Options for the filter dropdowns
+  // 💡 --- FIX 2: Add 'All' to the list ---
   final List<String> _serviceTypes = [
+    'All',
     'Catering',
     'Photography',
     'Venue',
     'Decor',
-    'Music'
+    'Music',
   ];
   final List<String> _ratingOptions = [
     '4+ Stars',
     '3+ Stars',
     '2+ Stars',
-    '1+ Star'
+    '1+ Star',
   ];
 
   // --- NEW FUNCTION: Send booking request to Firebase ---
   Future<void> _sendBookingRequest(
-      BuildContext context, String vendorId, String vendorName) async {
+    BuildContext context,
+    String vendorId,
+    String vendorName,
+  ) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -65,7 +71,8 @@ class _VendorsScreenState extends State<VendorsScreen> {
         builder: (ctx) => AlertDialog(
           title: const Text('Select an Event'),
           content: const Text(
-              'To book this vendor, please go to your event\'s detail page and add vendors from there.'),
+            'To book this vendor, please go to your event\'s detail page and add vendors from there.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -84,8 +91,7 @@ class _VendorsScreenState extends State<VendorsScreen> {
         'plannerId': user.uid,
         'vendorId': vendorId,
         'vendorName': vendorName, // Store for easy display on both ends
-        'plannerName':
-            user.displayName ?? user.email, // Store for easy display
+        'plannerName': user.displayName ?? user.email, // Store for easy display
         'eventName': widget.eventName,
         'status': 'pending', // Status: pending, confirmed, declined
         'requestedAt': FieldValue.serverTimestamp(),
@@ -93,9 +99,7 @@ class _VendorsScreenState extends State<VendorsScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Booking request sent for "$vendorName"!',
-          ),
+          content: Text('Booking request sent for "$vendorName"!'),
           backgroundColor: AppTheme.kSuccessColor,
           duration: const Duration(seconds: 2),
         ),
@@ -110,7 +114,7 @@ class _VendorsScreenState extends State<VendorsScreen> {
     }
   }
 
-  // 💡 --- *** BUG FIX 3: UPDATED QUERY FUNCTION *** ---
+  // 💡 --- *** BUG FIX 3 & USER REQUEST: UPDATED QUERY FUNCTION *** ---
   Query _buildVendorQuery() {
     // Start with the base query
     Query query = FirebaseFirestore.instance
@@ -118,8 +122,8 @@ class _VendorsScreenState extends State<VendorsScreen> {
         .where('role', isEqualTo: 'Vendor')
         .where('status', isEqualTo: 'Active'); // Only show approved vendors
 
-    // Apply service type filter if selected
-    if (_selectedServiceType != null) {
+    // Apply service type filter if selected AND is not 'All'
+    if (_selectedServiceType != null && _selectedServiceType != 'All') {
       // Assumes vendors have a 'serviceType' field
       query = query.where('serviceType', isEqualTo: _selectedServiceType);
     }
@@ -153,8 +157,9 @@ class _VendorsScreenState extends State<VendorsScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     // Use theme colors from app_theme.dart
-    final Color backgroundColor =
-        isDark ? AppTheme.kBackgroundDark : AppTheme.backgroundLight;
+    final Color backgroundColor = isDark
+        ? AppTheme.kBackgroundDark
+        : AppTheme.backgroundLight;
     const Color primaryColor = AppTheme.kPrimaryColor;
 
     return WillPopScope(
@@ -174,8 +179,9 @@ class _VendorsScreenState extends State<VendorsScreen> {
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           leading: IconButton(
-            icon:
-                const Icon(Icons.arrow_back_ios_new), // Inherits color from theme
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+            ), // Inherits color from theme
             onPressed: () {
               _navigateBackToDashboard(context);
             },
@@ -192,12 +198,10 @@ class _VendorsScreenState extends State<VendorsScreen> {
                   prefixIcon: const Icon(Icons.search, color: Colors.grey),
                   hintText: 'Search vendors',
                   filled: true,
-                  fillColor:
-                      isDark ? AppTheme.kCardDarkColor : Colors.white,
+                  fillColor: isDark ? AppTheme.kCardDarkColor : Colors.white,
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(50),
-                    borderSide:
-                        const BorderSide(color: primaryColor, width: 2),
+                    borderSide: const BorderSide(color: primaryColor, width: 2),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(50),
@@ -244,8 +248,9 @@ class _VendorsScreenState extends State<VendorsScreen> {
                       }
                       // Parse the string "4+ Stars" to the number 4
                       setState(() {
-                        _selectedRating =
-                            double.parse(newValue.substring(0, 1));
+                        _selectedRating = double.parse(
+                          newValue.substring(0, 1),
+                        );
                       });
                     },
                     isDark: isDark,
@@ -255,12 +260,18 @@ class _VendorsScreenState extends State<VendorsScreen> {
 
                   // Availability Filter (UI Stub)
                   filterButton(
-                      'Availability', Icons.calendar_today, isDark, () {
-                    // TODO: Implement date picker logic for availability
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    'Availability',
+                    Icons.calendar_today,
+                    isDark,
+                    () {
+                      // TODO: Implement date picker logic for availability
+                      ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text('Availability filter coming soon!')));
-                  }),
+                          content: Text('Availability filter coming soon!'),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -284,18 +295,18 @@ class _VendorsScreenState extends State<VendorsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.search_off,
-                              size: 60, color: Colors.grey),
+                          Icon(Icons.search_off, size: 60, color: Colors.grey),
                           SizedBox(height: 16),
                           Text(
                             'No vendors found',
                             style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           Text(
                             'Try adjusting your filters.',
-                            style:
-                                TextStyle(fontSize: 16, color: Colors.grey),
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
                           ),
                         ],
                       ),
@@ -313,16 +324,17 @@ class _VendorsScreenState extends State<VendorsScreen> {
                       final data = doc.data() as Map<String, dynamic>;
 
                       // Use profileImageUrl from Firebase, or a mock image as fallback
-                      final imageUrl = data['profileImageUrl'] ??
+                      final imageUrl =
+                          data['profileImageUrl'] ??
                           _mockImages[index % _mockImages.length];
 
                       return vendorCard(
-                          vendorId: doc.id, // Pass the doc ID
-                          vendorData: data,
-                          imageUrl:
-                              imageUrl, // Use fetched URL or mock
-                          isDark: isDark,
-                          context: context);
+                        vendorId: doc.id, // Pass the doc ID
+                        vendorData: data,
+                        imageUrl: imageUrl, // Use fetched URL or mock
+                        isDark: isDark,
+                        context: context,
+                      );
                     },
                   );
                 },
@@ -352,20 +364,22 @@ class _VendorsScreenState extends State<VendorsScreen> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
-          hint: Text(hint,
-              style: const TextStyle(
-                  color: AppTheme.kPrimaryColor, fontSize: 14)),
-          icon: const Icon(Icons.expand_more,
-              color: AppTheme.kPrimaryColor, size: 20),
+          hint: Text(
+            hint,
+            style: const TextStyle(color: AppTheme.kPrimaryColor, fontSize: 14),
+          ),
+          icon: const Icon(
+            Icons.expand_more,
+            color: AppTheme.kPrimaryColor,
+            size: 20,
+          ),
           style: TextStyle(
-              color: theme.colorScheme.onSurface,
-              fontSize: 14), // 💡 --- FIX: Use theme ---
+            color: theme.colorScheme.onSurface,
+            fontSize: 14,
+          ), // 💡 --- FIX: Use theme ---
           dropdownColor: isDark ? AppTheme.kCardDarkColor : Colors.white,
           items: items.map((String item) {
-            return DropdownMenuItem<String>(
-              value: item,
-              child: Text(item),
-            );
+            return DropdownMenuItem<String>(value: item, child: Text(item));
           }).toList(),
           onChanged: onChanged,
         ),
@@ -375,7 +389,11 @@ class _VendorsScreenState extends State<VendorsScreen> {
 
   // Filter Button Widget (for Availability)
   Widget filterButton(
-      String label, IconData icon, bool isDark, VoidCallback onPressed) {
+    String label,
+    IconData icon,
+    bool isDark,
+    VoidCallback onPressed,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.kPrimaryColor.withOpacity(isDark ? 0.2 : 0.1),
@@ -383,15 +401,18 @@ class _VendorsScreenState extends State<VendorsScreen> {
       ),
       child: TextButton.icon(
         onPressed: onPressed,
-        icon: const Icon(Icons.calendar_today,
-            size: 16, color: AppTheme.kPrimaryColor),
+        icon: const Icon(
+          Icons.calendar_today,
+          size: 16,
+          color: AppTheme.kPrimaryColor,
+        ),
         label: Text(
           label,
-          style:
-              const TextStyle(color: AppTheme.kPrimaryColor, fontSize: 14),
+          style: const TextStyle(color: AppTheme.kPrimaryColor, fontSize: 14),
         ),
         style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4)),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        ),
       ),
     );
   }
@@ -409,9 +430,11 @@ class _VendorsScreenState extends State<VendorsScreen> {
     final String type =
         vendorData['serviceType'] ?? 'Vendor'; // Assumes 'serviceType' field
     final double rating =
-        (vendorData['rating'] as num?)?.toDouble() ?? 0.0; // Assumes 'rating' field
+        (vendorData['rating'] as num?)?.toDouble() ??
+        0.0; // Assumes 'rating' field
     final int reviews =
-        (vendorData['reviews'] as num?)?.toInt() ?? 0; // Assumes 'reviews' field
+        (vendorData['reviews'] as num?)?.toInt() ??
+        0; // Assumes 'reviews' field
 
     // Check if it's a network image or local asset
     final bool isNetworkImage =
@@ -461,8 +484,9 @@ class _VendorsScreenState extends State<VendorsScreen> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color:
-                              theme.colorScheme.onSurface, // 💡 --- FIX: Use theme ---
+                          color: theme
+                              .colorScheme
+                              .onSurface, // 💡 --- FIX: Use theme ---
                         ),
                       ),
                       Text(
@@ -475,18 +499,15 @@ class _VendorsScreenState extends State<VendorsScreen> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(
-                            Icons.star,
-                            color: Colors.amber,
-                            size: 16,
-                          ),
+                          const Icon(Icons.star, color: Colors.amber, size: 16),
                           const SizedBox(width: 4),
                           Text(
                             rating.toStringAsFixed(1), // Format rating
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: theme
-                                  .colorScheme.onSurface, // 💡 --- FIX: Use theme ---
+                                  .colorScheme
+                                  .onSurface, // 💡 --- FIX: Use theme ---
                             ),
                           ),
                           const SizedBox(width: 4),
