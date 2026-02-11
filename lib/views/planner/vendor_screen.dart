@@ -29,12 +29,10 @@ class _VendorsScreenState extends State<VendorsScreen> {
   ];
 
   // State for filters
-  // 💡 --- FIX 1: Set default filter to 'All' ---
   String? _selectedServiceType = 'All';
   double _selectedRating = 0; // 0 means no rating filter
 
   // Options for the filter dropdowns
-  // 💡 --- FIX 2: Add 'All' to the list ---
   final List<String> _serviceTypes = [
     'All',
     'Catering',
@@ -50,7 +48,7 @@ class _VendorsScreenState extends State<VendorsScreen> {
     '1+ Star',
   ];
 
-  // --- NEW FUNCTION: Send booking request to Firebase ---
+  // --- UPDATED: This function now triggers the event selection dialog ---
   Future<void> _sendBookingRequest(
     BuildContext context,
     String vendorId,
@@ -64,42 +62,133 @@ class _VendorsScreenState extends State<VendorsScreen> {
       return;
     }
 
-    // --- *** BUG FIX 4: CHECK BOOKING CONTEXT *** ---
-    if (widget.eventName == "General Vendor Search") {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Select an Event'),
-          content: const Text(
-            'To book this vendor, please go to your event\'s detail page and add vendors from there.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
-      return; // Stop execution
-    }
-    // --- *** END OF FIX *** ---
+    // Show the event selection dialog
+    _showEventSelectionDialog(context, vendorId, vendorName, user);
+  }
 
+  // --- NEW: Shows a bottom sheet with the planner's events ---
+  void _showEventSelectionDialog(
+    BuildContext context,
+    String vendorId,
+    String vendorName,
+    User planner,
+  ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppTheme.kCardDarkColor : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          height: MediaQuery.of(context).size.height * 0.4,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Select an Event to Book',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  // Fetch events for the current planner
+                  stream: FirebaseFirestore.instance
+                      .collection('events')
+                      .where('plannerId', isEqualTo: planner.uid)
+                      .orderBy('createdAt', descending: true)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return Center(
+                        child: Text(
+                          'You have not created any events yet.',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      );
+                    }
+
+                    final events = snapshot.data!.docs;
+
+                    return ListView.builder(
+                      itemCount: events.length,
+                      itemBuilder: (context, index) {
+                        final eventDoc = events[index];
+                        final data = eventDoc.data() as Map<String, dynamic>;
+                        final String eventName =
+                            data['eventName'] ?? 'Untitled Event';
+                        final String eventDate = data['date'] ?? 'No date';
+
+                        return Card(
+                          color: isDark
+                              ? AppTheme.kBackgroundDark
+                              : AppTheme.backgroundLight,
+                          margin: const EdgeInsets.only(bottom: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ListTile(
+                            title: Text(eventName),
+                            subtitle: Text(eventDate),
+                            onTap: () {
+                              // Pop the bottom sheet
+                              Navigator.pop(ctx);
+                              // Call the function to create the booking
+                              _createBooking(
+                                vendorId,
+                                vendorName,
+                                eventName,
+                                planner,
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // --- NEW: This function contains the booking creation logic ---
+  Future<void> _createBooking(
+    String vendorId,
+    String vendorName,
+    String eventName,
+    User planner,
+  ) async {
     try {
       // Create a new document in the 'bookings' collection
       await FirebaseFirestore.instance.collection('bookings').add({
-        'plannerId': user.uid,
+        'plannerId': planner.uid,
         'vendorId': vendorId,
         'vendorName': vendorName, // Store for easy display on both ends
-        'plannerName': user.displayName ?? user.email, // Store for easy display
-        'eventName': widget.eventName,
+        'plannerName':
+            planner.displayName ?? planner.email, // Store for easy display
+        'eventName': eventName, // Use the selected event name
         'status': 'pending', // Status: pending, confirmed, declined
         'requestedAt': FieldValue.serverTimestamp(),
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Booking request sent for "$vendorName"!'),
+          content: Text(
+            'Booking request sent for "$vendorName" for "$eventName"!',
+          ),
           backgroundColor: AppTheme.kSuccessColor,
           duration: const Duration(seconds: 2),
         ),
@@ -114,7 +203,6 @@ class _VendorsScreenState extends State<VendorsScreen> {
     }
   }
 
-  // 💡 --- *** BUG FIX 3 & USER REQUEST: UPDATED QUERY FUNCTION *** ---
   Query _buildVendorQuery() {
     // Start with the base query
     Query query = FirebaseFirestore.instance
@@ -133,11 +221,6 @@ class _VendorsScreenState extends State<VendorsScreen> {
       // Assumes vendors have a 'rating' field (number)
       query = query.where('rating', isGreaterThanOrEqualTo: _selectedRating);
     }
-
-    // Note: Availability filtering is complex and often requires a different
-    // data structure (e.g., a subcollection of available dates) or a
-    // backend function. We will keep the UI stub but not add query logic for it.
-
     return query;
   }
 
@@ -229,7 +312,7 @@ class _VendorsScreenState extends State<VendorsScreen> {
                       });
                     },
                     isDark: isDark,
-                    theme: theme, // 💡 --- FIX: Pass theme ---
+                    theme: theme,
                   ),
                   const SizedBox(width: 8),
 
@@ -254,7 +337,7 @@ class _VendorsScreenState extends State<VendorsScreen> {
                       });
                     },
                     isDark: isDark,
-                    theme: theme, // 💡 --- FIX: Pass theme ---
+                    theme: theme,
                   ),
                   const SizedBox(width: 8),
 
@@ -353,7 +436,7 @@ class _VendorsScreenState extends State<VendorsScreen> {
     required List<String> items,
     required ValueChanged<String?> onChanged,
     required bool isDark,
-    required ThemeData theme, // 💡 --- FIX: Add theme parameter ---
+    required ThemeData theme,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -373,10 +456,7 @@ class _VendorsScreenState extends State<VendorsScreen> {
             color: AppTheme.kPrimaryColor,
             size: 20,
           ),
-          style: TextStyle(
-            color: theme.colorScheme.onSurface,
-            fontSize: 14,
-          ), // 💡 --- FIX: Use theme ---
+          style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
           dropdownColor: isDark ? AppTheme.kCardDarkColor : Colors.white,
           items: items.map((String item) {
             return DropdownMenuItem<String>(value: item, child: Text(item));
@@ -440,7 +520,6 @@ class _VendorsScreenState extends State<VendorsScreen> {
     final bool isNetworkImage =
         imageUrl.startsWith('http') || imageUrl.startsWith('https');
 
-    // 💡 --- FIX: Get theme from context ---
     final theme = Theme.of(context);
 
     return Card(
@@ -484,9 +563,7 @@ class _VendorsScreenState extends State<VendorsScreen> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color: theme
-                              .colorScheme
-                              .onSurface, // 💡 --- FIX: Use theme ---
+                          color: theme.colorScheme.onSurface,
                         ),
                       ),
                       Text(
@@ -505,9 +582,7 @@ class _VendorsScreenState extends State<VendorsScreen> {
                             rating.toStringAsFixed(1), // Format rating
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: theme
-                                  .colorScheme
-                                  .onSurface, // 💡 --- FIX: Use theme ---
+                              color: theme.colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(width: 4),
