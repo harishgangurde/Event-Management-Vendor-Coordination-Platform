@@ -253,19 +253,6 @@ service cloud.firestore {
 
 ---
 
-## 🤝 Contributing
-
-```bash
-# Fork → Branch → Commit → PR
-git checkout -b feat/your-feature
-git commit -m "feat: describe your change"
-git push origin feat/your-feature
-```
-
-All PRs welcome. Please follow the existing structure and test before submitting.
-
----
-
 ## 👤 Author
 
 **Harish Gangurde**
