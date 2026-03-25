@@ -9,8 +9,8 @@ environment:
 dependencies:
   animations: ^2.0.11
   cloud_firestore: ^6.0.2
-  firebase_auth: ^6.1.0
-  firebase_core: ^4.1.1
+  firebase_auth: ^6.3.0
+  firebase_core: ^4.6.0
   fl_chart: ^1.1.1
   flutter:
     sdk: flutter
