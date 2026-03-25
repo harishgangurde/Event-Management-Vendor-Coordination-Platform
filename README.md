@@ -26,6 +26,14 @@
 > A role-based Flutter app connecting attendees, organizers, and vendors on one platform.
 
 <br/>
+
+<!-- Replace with your app banner / demo GIF -->
+<img src="https://via.placeholder.com/860x380/0f172a/FF6B35?text=📱+Eventtoria+App+Preview" width="860" alt="App Preview" />
+
+<br/><br/>
+
+[📱 Download APK](#) &nbsp;·&nbsp; [🎥 Watch Demo](#) &nbsp;·&nbsp; [🐛 Report Bug](../../issues) &nbsp;·&nbsp; [💡 Request Feature](../../issues)
+
 </div>
 
 ---
@@ -118,16 +126,16 @@ dependencies:
 ## 🏗️ Architecture
 
 ```
-UI Layer  (Screens & Widgets)
+Views  (admin · auth · landing · planner · vendor)
     ↓
-Provider  (State Management)
+Controllers  (Business logic layer)
     ↓
-Services  (AuthService · EventService · BookingService)
+Services     (AuthService · EventService · BookingService)
     ↓
-Firebase  (Auth · Firestore · Storage)
+Firebase     (Auth · Firestore · Storage)
 ```
 
-Follows a **layered architecture**: UI never talks to Firebase directly. All data flows through service classes consumed by Provider, keeping screens clean and logic testable.
+Follows a **layered architecture**: Views never talk to Firebase directly. All data flows through controllers and service classes, keeping screens clean and logic reusable.
 
 ---
 
@@ -145,21 +153,24 @@ Follows a **layered architecture**: UI never talks to Firebase directly. All dat
 ## 📁 Folder Structure
 
 ```
-lib/
-├── main.dart
-├── models/          # User, Event, Booking models
-├── providers/       # Auth, Event, Booking providers
-├── services/        # Firebase service classes
-├── screens/
-│   ├── auth/        # Login, Register
-│   ├── home/        # Home feed
-│   ├── events/      # Event list, Event detail
-│   ├── booking/     # Booking screen
-│   ├── profile/     # User profile
-│   ├── organizer/   # Dashboard, Create event
-│   └── admin/       # Admin panel
-├── widgets/         # Reusable components
-└── utils/           # Constants, validators, formatters
+eventtoria/
+├── assets/                      # Images, icons, fonts
+├── ios/                         # iOS project files
+├── lib/
+│   ├── config/                  # App config, themes, constants
+│   ├── controllers/             # Business logic / controller classes
+│   ├── services/                # Firebase service classes (Auth, Firestore, Storage)
+│   ├── views/
+│   │   ├── admin/               # Admin panel screens
+│   │   ├── auth/                # Login, Register screens
+│   │   ├── landing/             # Splash / onboarding screens
+│   │   ├── planner/             # Event planning & booking screens
+│   │   └── vendor/              # Vendor / organizer screens
+│   ├── widgets/                 # Reusable UI components
+│   ├── aboutus_screen.dart      # About Us page
+│   ├── firebase_options.dart    # Auto-generated Firebase config
+│   └── main.dart                # App entry point
+└── linux/
 ```
 
 ---
@@ -174,7 +185,7 @@ lib/
 
 ```bash
 # 1. Clone
-git clone https://github.com/your-username/eventtoria.git
+git clone https://github.com/harishgangurde/eventtoria.git
 cd eventtoria
 
 # 2. Install packages
@@ -267,7 +278,7 @@ All PRs welcome. Please follow the existing structure and test before submitting
 
 ## 👤 Author
 
-**Your Name**
+**Harish Gangurde**
 &nbsp;·&nbsp; [GitHub](https://github.com/harishgangurde)
 &nbsp;·&nbsp; [LinkedIn](https://linkedin.com/in/harishgangurde)
 &nbsp;·&nbsp; `harishgangurde1539@gmail.com`
@@ -276,7 +287,7 @@ All PRs welcome. Please follow the existing structure and test before submitting
 
 ## 📄 License
 
-MIT © [Your Name](https://github.com/your-username) — see [LICENSE](./LICENSE) for details.
+MIT © [Harish Gangurde](https://github.com/harishgangurde) — see [LICENSE](./LICENSE) for details.
 
 ---
 
