@@ -26,14 +26,6 @@
 > A role-based Flutter app connecting attendees, organizers, and vendors on one platform.
 
 <br/>
-
-<!-- Replace with your app banner / demo GIF -->
-<img src="https://via.placeholder.com/860x380/0f172a/FF6B35?text=📱+Eventtoria+App+Preview" width="860" alt="App Preview" />
-
-<br/><br/>
-
-[📱 Download APK](#) &nbsp;·&nbsp; [🎥 Watch Demo](#) &nbsp;·&nbsp; [🐛 Report Bug](../../issues) &nbsp;·&nbsp; [💡 Request Feature](../../issues)
-
 </div>
 
 ---
@@ -231,8 +223,6 @@ service cloud.firestore {
 | Organizer Dashboard | Manage listings and view registrations |
 | Create / Edit Event | Form with image upload |
 | Admin Panel | Platform-wide moderation |
-
-> 📸 *Add your screenshots here — recommended: side-by-side 3-column layout*
 
 ---
 
