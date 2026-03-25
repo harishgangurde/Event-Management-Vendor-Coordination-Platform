@@ -1,99 +1,293 @@
-<<<<<<< HEAD
-# eventtoria
+<div align="center">
 
-A new Flutter project.
-=======
-# EventtoriaApp
+# 🎪 Eventtoria
 
+### Event Management & Vendor Coordination Platform
 
+<p>
+  <img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white" />
+  <img src="https://img.shields.io/badge/Dart-3.x-0175C2?style=for-the-badge&logo=dart&logoColor=white" />
+  <img src="https://img.shields.io/badge/Firebase-Backend-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" />
+  <img src="https://img.shields.io/badge/Platform-Android%20%7C%20iOS-lightgrey?style=for-the-badge&logo=android&logoColor=white" />
+</p>
 
-## Getting started
+<p>
+  <img src="https://img.shields.io/badge/Auth-Firebase%20Auth-orange?style=flat-square&logo=firebase" />
+  <img src="https://img.shields.io/badge/Database-Firestore-yellow?style=flat-square&logo=google-cloud" />
+  <img src="https://img.shields.io/badge/Storage-Firebase%20Storage-red?style=flat-square&logo=firebase" />
+  <img src="https://img.shields.io/badge/State-Provider-7C3AED?style=flat-square" />
+  <img src="https://img.shields.io/badge/License-MIT-22c55e?style=flat-square" />
+  <img src="https://img.shields.io/badge/Status-In%20Development-f59e0b?style=flat-square" />
+</p>
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+<br/>
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+> **Discover events. Book instantly. Coordinate effortlessly.**  
+> A role-based Flutter app connecting attendees, organizers, and vendors on one platform.
 
-## Add your files
+<br/>
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+<!-- Replace with your app banner / demo GIF -->
+<img src="https://via.placeholder.com/860x380/0f172a/FF6B35?text=📱+Eventtoria+App+Preview" width="860" alt="App Preview" />
+
+<br/><br/>
+
+[📱 Download APK](#) &nbsp;·&nbsp; [🎥 Watch Demo](#) &nbsp;·&nbsp; [🐛 Report Bug](../../issues) &nbsp;·&nbsp; [💡 Request Feature](../../issues)
+
+</div>
+
+---
+
+## 📌 Overview
+
+**Eventtoria** is a Flutter + Firebase mobile app that brings event discovery and vendor coordination into a single, role-based platform. Users can browse and book events; organizers can create and manage listings; admins can oversee the platform.
+
+Built as a portfolio project — the focus was on clean architecture, real Firebase integration, and practical multi-role UX design.
+
+---
+
+## ✨ What It Does
+
+<table>
+<tr>
+<td width="33%">
+
+**👤 For Attendees**
+- Browse & discover events
+- View full event details
+- Book / register for events
+- Manage profile & bookings
+
+</td>
+<td width="33%">
+
+**🧑‍💼 For Organizers**
+- Create & publish events
+- Upload banners via Gallery/Camera
+- Edit or remove listings
+- Track bookings in real time
+
+</td>
+<td width="33%">
+
+**🛡️ For Admins**
+- Moderate all listings
+- Oversee platform bookings
+- Manage user accounts
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Flutter · Dart |
+| Auth | Firebase Authentication · Google Sign-In |
+| Database | Cloud Firestore |
+| Storage | Firebase Storage |
+| State | Provider (`ChangeNotifier`) |
+| Local Cache | Shared Preferences |
+| Images | Image Picker · Cached Network Image |
+| Utils | Intl · UUID · Fluttertoast |
+
+<details>
+<summary><b>📦 pubspec.yaml — Key Dependencies</b></summary>
+
+```yaml
+dependencies:
+  # Firebase
+  firebase_core: ^2.x.x
+  firebase_auth: ^4.x.x
+  cloud_firestore: ^4.x.x
+  firebase_storage: ^11.x.x
+  google_sign_in: ^6.x.x
+
+  # State & Storage
+  provider: ^6.x.x
+  shared_preferences: ^2.x.x
+
+  # UI & Media
+  image_picker: ^1.x.x
+  cached_network_image: ^3.x.x
+  fluttertoast: ^8.x.x
+
+  # Utilities
+  intl: ^0.18.x
+  uuid: ^4.x.x
+```
+</details>
+
+---
+
+## 🏗️ Architecture
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/shivkumar.777-group/eventtoriaapp.git
-git branch -M main
-git push -uf origin main
+UI Layer  (Screens & Widgets)
+    ↓
+Provider  (State Management)
+    ↓
+Services  (AuthService · EventService · BookingService)
+    ↓
+Firebase  (Auth · Firestore · Storage)
 ```
 
-## Integrate with your tools
+Follows a **layered architecture**: UI never talks to Firebase directly. All data flows through service classes consumed by Provider, keeping screens clean and logic testable.
 
-- [ ] [Set up project integrations](https://gitlab.com/shivkumar.777-group/eventtoriaapp/-/settings/integrations)
+---
 
-## Collaborate with your team
+## 🗃️ Firestore Data Model
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+```
+/users/{uid}         → name, email, role, profileImageUrl
+/events/{eventId}    → title, description, date, time, location, price, imageUrl, organizerId
+/bookings/{id}       → userId, eventId, bookedAt, status
+/vendors/{id}        → businessName, contactEmail, servicesOffered
+```
 
-## Test and Deploy
+---
 
-Use the built-in continuous integration in GitLab.
+## 📁 Folder Structure
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+```
+lib/
+├── main.dart
+├── models/          # User, Event, Booking models
+├── providers/       # Auth, Event, Booking providers
+├── services/        # Firebase service classes
+├── screens/
+│   ├── auth/        # Login, Register
+│   ├── home/        # Home feed
+│   ├── events/      # Event list, Event detail
+│   ├── booking/     # Booking screen
+│   ├── profile/     # User profile
+│   ├── organizer/   # Dashboard, Create event
+│   └── admin/       # Admin panel
+├── widgets/         # Reusable components
+└── utils/           # Constants, validators, formatters
+```
 
-***
+---
 
-# Editing this README
+## 🚀 Getting Started
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+### Prerequisites
+- Flutter SDK `3.x+`
+- A Firebase project with Auth, Firestore & Storage enabled
 
-## Suggestions for a good README
+### Setup
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+```bash
+# 1. Clone
+git clone https://github.com/your-username/eventtoria.git
+cd eventtoria
 
-## Name
-Choose a self-explaining name for your project.
+# 2. Install packages
+flutter pub get
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+# 3. Configure Firebase (recommended)
+dart pub global activate flutterfire_cli
+flutterfire configure
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+# 4. Run
+flutter run
+```
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+> **Manual Firebase setup:** Download `google-services.json` → `android/app/` and `GoogleService-Info.plist` → `ios/Runner/`
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+<details>
+<summary><b>⚙️ Firestore Rules (Development)</b></summary>
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+```
+⚠️ Tighten these rules with role-based access before going live.
+</details>
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+---
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+## 📱 Screens
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+| Screen | Description |
+|---|---|
+| Login / Register | Email + Google Sign-In |
+| Home | Event feed with categories |
+| Event Detail | Date, venue, price, images, booking CTA |
+| Booking | Confirm registration |
+| Profile | User info + booking history |
+| Organizer Dashboard | Manage listings and view registrations |
+| Create / Edit Event | Form with image upload |
+| Admin Panel | Platform-wide moderation |
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+> 📸 *Add your screenshots here — recommended: side-by-side 3-column layout*
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+---
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+## 🔭 Roadmap
 
-## License
-For open source projects, say how it is licensed.
+- [ ] Push notifications via FCM
+- [ ] In-app payments (Razorpay)
+- [ ] QR code ticket generation
+- [ ] Google Maps venue display
+- [ ] Event search with filters
+- [ ] Reviews & ratings
+- [ ] Dark mode
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
->>>>>>> 5570ca0747832ef852b614fa1f5d7818a39fcb06
+---
+
+## 🧠 Challenges & Learnings
+
+**Challenges**
+- Designing Firestore rules that enforce role separation (user / organizer / admin) cleanly
+- Keeping multi-screen state in sync with Firestore streams via Provider without excessive rebuilds
+- Building a smooth image upload flow: pick → compress → upload to Storage → save URL to Firestore
+
+**What I Learned**
+- Structuring a Flutter app with a proper service/repository layer
+- Real-world Firebase Auth with OAuth (Google Sign-In)
+- NoSQL data modeling for a multi-role, relational-style use case
+- Async state management patterns with `ChangeNotifier` and `StreamBuilder`
+
+---
+
+## 🤝 Contributing
+
+```bash
+# Fork → Branch → Commit → PR
+git checkout -b feat/your-feature
+git commit -m "feat: describe your change"
+git push origin feat/your-feature
+```
+
+All PRs welcome. Please follow the existing structure and test before submitting.
+
+---
+
+## 👤 Author
+
+**Your Name**
+&nbsp;·&nbsp; [GitHub](https://github.com/harishgangurde)
+&nbsp;·&nbsp; [LinkedIn](https://linkedin.com/in/harishgangurde)
+&nbsp;·&nbsp; `harishgangurde1539@gmail.com`
+
+---
+
+## 📄 License
+
+MIT © [Your Name](https://github.com/your-username) — see [LICENSE](./LICENSE) for details.
+
+---
+
+<div align="center">
+<sub>Built with Flutter · Powered by Firebase</sub>
+</div>
